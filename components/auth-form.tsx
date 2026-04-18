@@ -1,8 +1,21 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
 type AuthMode = "signup" | "login";
 
@@ -10,36 +23,55 @@ type AuthFormProps = {
   mode: AuthMode;
 };
 
+const signUpSchema = z.object({
+  displayName: z.string().trim().min(1, "Display name is required"),
+  email: z.email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+const loginSchema = z.object({
+  email: z.email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type SignUpValues = z.infer<typeof signUpSchema>;
+type LoginValues = z.infer<typeof loginSchema>;
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isSignup = mode === "signup";
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const form = useForm<SignUpValues | LoginValues>({
+    resolver: zodResolver(isSignup ? signUpSchema : loginSchema),
+    defaultValues: isSignup
+      ? { displayName: "", email: "", password: "" }
+      : { email: "", password: "" },
+  });
+
+  async function handleSubmit(values: SignUpValues | LoginValues) {
     setPending(true);
     setError(null);
 
     try {
-      if (mode === "signup") {
+      if (isSignup) {
+        const signUpValues = values as SignUpValues;
         const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
+          email: signUpValues.email,
+          password: signUpValues.password,
           options: {
             data: {
-              display_name: displayName.trim(),
+              display_name: signUpValues.displayName.trim(),
             },
           },
         });
         if (signUpError) throw signUpError;
 
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: signUpValues.email,
+          password: signUpValues.password,
         });
         if (signInError) throw signInError;
 
@@ -52,15 +84,16 @@ export function AuthForm({ mode }: AuthFormProps) {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              displayName,
+              displayName: signUpValues.displayName,
               timezone: "Asia/Karachi",
             }),
           });
         }
       } else {
+        const loginValues = values as LoginValues;
         const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: loginValues.email,
+          password: loginValues.password,
         });
         if (loginError) throw loginError;
       }
@@ -76,58 +109,66 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {mode === "signup" && (
-        <div className="space-y-1">
-          <label htmlFor="displayName" className="block text-sm font-medium">
-            Display name
-          </label>
-          <input
-            id="displayName"
-            required
-            value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {isSignup && (
+          <FormField
+            control={form.control}
+            name="displayName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Your name" autoComplete="name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      )}
-      <div className="space-y-1">
-        <label htmlFor="email" className="block text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          required
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2"
+        )}
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  required
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="password" className="block text-sm font-medium">
-          Password
-        </label>
-        <input
-          id="password"
-          required
-          minLength={8}
-          type="password"
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2"
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input
+                  required
+                  minLength={8}
+                  type="password"
+                  autoComplete={isSignup ? "new-password" : "current-password"}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2 text-white transition hover:bg-zinc-700 disabled:opacity-60"
-      >
-        {pending ? "Please wait..." : mode === "signup" ? "Sign up" : "Log in"}
-      </button>
-    </form>
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? "Please wait..." : isSignup ? "Sign up" : "Log in"}
+        </Button>
+      </form>
+    </Form>
   );
 }

@@ -23,18 +23,67 @@
   - RLS enabled + policies across core tables
 - Lint passed after implementation
 
+### Phase 1.5 — UI foundation (completed)
+- **shadcn/ui** integrated with the existing Next.js + Tailwind v4 stack (`components.json`, `lib/utils.ts`, theme tokens in `app/globals.css`).
+- **Forms:** React Hook Form + Zod for validation; shared form primitives in `components/ui/form.tsx` (with `@radix-ui/react-slot` for accessible control wiring).
+- **Core UI primitives** under `components/ui/`: `button`, `input`, `label`, `card`, `dialog`, `dropdown-menu`, `select` (plus generated theme/CSS from the shadcn CLI).
+- **Auth UI migrated** to shadcn + RHF + Zod: `components/auth-form.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`.
+- **Landing / home** CTAs use shared button + card patterns: `app/page.tsx`, `app/home/page.tsx`.
+- **Zod schemas (shared):**
+  - `lib/schemas/space.ts` — `spaceFormSchema` (discriminated union: `one_to_one` vs `group` name rules).
+  - `lib/schemas/invite.ts` — invite role / generate form shape for Phase 2.
+- **Phase 2 UI stubs (not persisted yet):**
+  - `components/space-form.tsx` — create-space form; `onSubmit` is ready to call Supabase insert.
+  - `components/invite-dialog.tsx` — invite dialog with role select + stub URL; optional `onGenerate` for real API.
+  - `components/home-spaces-phase2-stubs.tsx` — wires previews on `/home` (JSON preview + placeholder `spaceId` for invites).
+- **Types:** `next-pwa.d.ts` declares `next-pwa` for TypeScript builds.
+
 ### Pending before Phase 2 coding
 - Create real `.env.local` from `.env.local.example` with actual keys
 - Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
 
-### Next up (Phase 2)
-- Spaces CRUD (1:1 + group)
-- Invite link generation and one-time join
-- Invite auth edge case flow:
-  - store token in `sessionStorage`
-  - auth redirect
-  - post-auth auto-join and redirect to space
-- Member list and admin remove-member flow
+### Phase 2 — Implementation instructions (next)
+
+**Goal:** Persist spaces and invites, complete join flows, and ship member admin actions. Reuse the Phase 1.5 components instead of rebuilding UI.
+
+**Prerequisites**
+- `.env.local` populated and migration `0001_init.sql` applied so `spaces`, `space_members`, and `invite_links` exist with RLS as defined.
+
+**Suggested order**
+1. **Create space (server or client + RLS)**  
+   - On submit from `SpaceForm`, insert into `public.spaces` with `space_type` (`one_to_one` | `group`), `name` (nullable for 1:1 when empty), `created_by = auth.uid()`.  
+   - Insert the creator into `public.space_members` as `admin` (required for group; for 1:1 you still need membership rules per product — align with triggers/constraints in migration).  
+   - After success: redirect to `/spaces/[id]` or refresh `/home` and replace the JSON preview stub.
+
+2. **List spaces**  
+   - Query spaces the user belongs to via `space_members` (RLS already scopes reads to members). Replace the placeholder copy on `/home` with a real list.
+
+3. **Invite links**  
+   - Implement a route handler or server action that: creates a row in `invite_links` with a **hashed** token server-side, `intended_role`, `status = pending`, returns the public URL (e.g. `/invite/[token]` where the path uses the raw token once, store only hash in DB).  
+   - Pass real `spaceId` into `InviteDialog` and implement `onGenerate` to call that API and set `inviteUrl` from the response.  
+   - Enforce: only space admins can create invites (check `is_space_admin` / policies already in migration).
+
+4. **Join via link**  
+   - Page: `GET /invite/[token]` validates token, shows space summary; **Join** calls `POST` that verifies hash, inserts `space_members` if allowed, marks invite `used`, redirects to the space.  
+   - **Auth edge case** (see also [Invite join flow](#invite-join-flow-auth-edge-case) below): if unauthenticated, store token in `sessionStorage`, redirect to `/login` or `/signup`, then after auth auto-join and redirect to space.
+
+5. **Members**  
+   - Member list UI with roles.  
+   - Admin: remove member (and revoke / invalidate pending invite for that member per product rules).
+
+**Files to lean on**
+| Area | Location |
+|------|----------|
+| Space form + validation | `components/space-form.tsx`, `lib/schemas/space.ts` |
+| Invite UI + hook | `components/invite-dialog.tsx`, `lib/schemas/invite.ts` |
+| Home previews (replace with real data) | `components/home-spaces-phase2-stubs.tsx`, `app/home/page.tsx` |
+| Schema reference | `supabase/migrations/0001_init.sql` (`spaces`, `space_members`, `invite_links`) |
+
+**Product checklist (from plan)**
+- Spaces CRUD (1:1 + group) — create + list first; edit/delete if needed for v1.
+- Invite link generation and **one-time** join (status `pending` → `used`).
+- Invite auth edge case: `sessionStorage` token → auth → auto-join → space.
+- Member list with roles; admin remove member + invalidate relevant invite.
 
 ---
 
@@ -237,7 +286,7 @@
 
 | Layer | Technology | Reason |
 |---|---|---|
-| Frontend | Next.js latest (App Router) + TypeScript + Tailwind | PWA support, React ecosystem |
+| Frontend | Next.js latest (App Router) + TypeScript + Tailwind + shadcn/ui | PWA support, React ecosystem; forms via React Hook Form + Zod |
 | PWA | next-pwa | Service worker, offline shell, installable |
 | Offline queue | IndexedDB (via idb library) | Local action queue when offline |
 | Backend / Auth | Supabase | Auth, Postgres, Realtime, Row Level Security |
@@ -292,11 +341,16 @@ Add to `vercel.json`:
 - Auth: signup, login, session management, timezone stored on signup
 - Status: completed
 
+### Phase 1.5 — UI foundation
+- shadcn/ui, shared form primitives, auth + landing/home migrated, Phase 2 stubs (`SpaceForm`, `InviteDialog`)
+- Status: completed (see [Implementation Progress](#implementation-progress-latest))
+
 ### Phase 2 — Spaces & Invite System
-- 1:1 space creation
+- **UI prep (done in Phase 1.5):** `SpaceForm`, `InviteDialog`, Zod schemas, `/home` stubs — wire these to Supabase and APIs (see [Phase 2 — Implementation instructions](#phase-2--implementation-instructions-next) above).
+- 1:1 space creation (persist + bootstrap membership per migration rules)
 - Group space creation
-- Invite link generation (one-time use, stored with status)
-- Join via link flow
+- Invite link generation (one-time use, stored with status; token hashed at rest)
+- Join via link flow + [auth edge case](#invite-join-flow-auth-edge-case)
 - Member list with roles
 - Admin: remove member + invalidate link
 

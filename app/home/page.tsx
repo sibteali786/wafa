@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { HomeSpacesPhase2Stubs } from "@/components/home-spaces-phase2-stubs";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
@@ -29,18 +32,23 @@ export default async function HomePage() {
           </p>
         </div>
         <form action="/api/auth/logout" method="post">
-          <button className="rounded-md border border-zinc-300 px-3 py-2 text-sm">
-            Log out
-          </button>
+          <button className={buttonVariants({ variant: "outline", size: "sm" })}>Log out</button>
         </form>
       </div>
 
-      <div className="rounded-lg border border-dashed border-zinc-300 p-6 text-zinc-600">
-        Phase 1 complete: auth and profile foundation is ready. Spaces UI comes in
-        Phase 2.
-      </div>
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle>Phase 1 complete</CardTitle>
+        </CardHeader>
+        <CardContent className="text-muted-foreground">
+          Auth and profile foundation is ready. Below are Phase 2 UI stubs (forms
+          and invite dialog) ready to connect to data.
+        </CardContent>
+      </Card>
 
-      <Link href="/" className="text-sm font-medium text-zinc-900 underline">
+      <HomeSpacesPhase2Stubs />
+
+      <Link href="/" className={buttonVariants({ variant: "link", size: "sm" })}>
         Back to landing page
       </Link>
     </main>
