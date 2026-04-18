@@ -1,26 +1,27 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { AuthForm } from "@/components/auth-form";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppViewport } from "@/components/wafa/app-viewport";
+import { ScreenHeader } from "@/components/wafa/screen-header";
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Log in to see your spaces and promises.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthForm mode="login" />
-          <p className="mt-6 text-sm text-muted-foreground">
-            New here?{" "}
-            <Link href="/signup" className={buttonVariants({ variant: "link", size: "sm" })}>
-              Create an account
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    <AppViewport showTabBar={false}>
+      <ScreenHeader
+        title="Log in"
+        left={
+          <Link
+            href="/"
+            className="inline-flex h-7 w-7 items-center justify-center text-ink-secondary"
+            aria-label="Back"
+          >
+            <ChevronLeft className="size-5 stroke-[1.8]" />
+          </Link>
+        }
+      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[18px] pb-6 pt-4">
+        <AuthForm mode="login" />
+      </div>
+    </AppViewport>
   );
 }

@@ -18,6 +18,11 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        /** Wireframe primary CTA: 44px, 10px radius */
+        cta: "h-11 min-h-11 rounded-[10px] border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90",
+        /** Wireframe ghost / secondary button */
+        wireGhost:
+          "h-11 min-h-11 rounded-[10px] border border-line-strong bg-card text-sm font-medium text-primary-ink hover:bg-muted/40",
       },
       size: {
         default:
@@ -31,6 +36,7 @@ const buttonVariants = cva(
         "icon-sm":
           "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-9",
+        cta: "h-11 min-h-11 gap-2 rounded-[10px] px-4 text-sm has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
       },
     },
     defaultVariants: {

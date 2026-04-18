@@ -87,6 +87,94 @@
 
 ---
 
+## Wireframe Review — Gaps & Additions
+
+A wireframe deck (`Wafa_Wireframes_Deck.html`) covering 10 journeys was reviewed against this plan. Overall alignment is ~94%. The following gaps and additions must be implemented even though they are not yet wireframed.
+
+### Missing screens — must be built
+
+#### 1. `/invite/continue` — post-auth auto-join screen
+The unauthenticated invite edge case is in the spec but not wireframed. When a user opens an invite link without being logged in:
+- Show a minimal screen: space name preview + "You've been invited — sign up or log in to join"
+- After auth, `/invite/continue` reads `sessionStorage.invite_token`, auto-calls join, then redirects to the space
+- On failure (used/revoked/invalid token): clear token, show same invalid-invite error screen as the authenticated flow, redirect to `/home`
+
+#### 2. Missed reminders list screen — push notification fallback
+The Reminders tab bell icon shows a notification dot but no list screen is wireframed. This is the in-app fallback when web push is blocked (common on iOS Safari).
+- Route: `/reminders/missed`
+- Shows all promises where `due_at < now()` and `state != fulfilled`, grouped by space
+- Each row: promise title, space name, overdue duration (e.g. "2 days overdue"), tap opens promise detail
+- Empty state: "You're all caught up" with a checkmark
+- This screen is the primary fallback — it must work even when push notifications are fully disabled
+
+#### 3. Snoozed promise state — UI missing
+The `snoozed` state is in the DB schema and promise states list but no wireframe shows:
+- How a snoozed promise looks in the space list (greyed out? separate section?)
+- The snooze action — bottom sheet or inline picker for snooze duration (e.g. 1 hour, tomorrow, 3 days)
+- How to un-snooze — button on the promise detail
+- Snoozed promises should not show in the overdue count while snoozed
+
+Implement as: snooze bottom sheet on promise detail (similar to the reminder picker sheet in J07), with options: 1 hour · Later today · Tomorrow · 3 days. Snoozed promises appear in a collapsed "Snoozed" section at the bottom of the space promises list.
+
+#### 4. Note edit history screen
+The promise detail wireframe shows "edited 2× history" as a tappable link but the history screen is not wireframed.
+- Route: `/promises/:id/notes/:noteId/history`
+- Shows a chronological list of note versions: timestamp, author, full text of that version
+- Read-only — no restore action in v1
+- Keep simple: monospace or plain text diff is fine, full rich diff not needed
+
+#### 5. Profile / Me tab screen
+The tab bar includes a "Me" tab in every screen but no screen is wireframed for it.
+- Display name (editable)
+- Email (read-only)
+- Timezone (read-only in v1, shows "PKT — Asia/Karachi")
+- Push notification permission status + "Enable notifications" button if blocked
+- Log out button
+- App version in footer (small, muted)
+
+#### 6. Admin removes member — confirmation + feedback
+The spec says removal immediately invalidates the member's invite link. No confirmation or result screen is wireframed.
+- Tap member row in group → bottom sheet with "Remove from group" (destructive red) + Cancel
+- Confirmation copy: "This will remove [Name] and invalidate their invite link. They cannot rejoin unless you send a new link."
+- On success: member disappears from list, toast: "[Name] removed"
+
+---
+
+### Additions from wireframes — add to spec
+
+These were in the wireframes but not in the original plan. Both are good UX and should be built.
+
+#### Upload retry with attempt counter (Phase 4)
+When an attachment upload fails (e.g. signed URL expired mid-upload):
+- Show a failed chip on the attachment grid slot with a Retry / Remove action
+- Track attempt count: `attempts: N · max 3 before manual`
+- After 3 failed attempts, disable auto-retry and show "Upload failed — tap to try again manually"
+- Failed uploads do not block the promise — the promise saves normally, attachment sits as retryable
+
+#### "See my draft" on offline conflict (Phase 5)
+When a queued offline action is discarded due to a server conflict:
+- The conflict toast shows: "[Name] updated it first. Her version is live."
+- Add two actions: "View latest" (opens current server version) and "See my draft" (shows the discarded local text)
+- The discarded change is kept in IndexedDB under a `drafts` key (separate from the queue) so the user can reference it
+- Draft is cleared when user explicitly dismisses it or after 7 days
+
+---
+
+### What the wireframes confirmed is correct
+These decisions from the plan are correctly reflected in the wireframes — do not change them:
+- 1:1 ownership rule shown as inline tip: "Only the creator can edit or delete it"
+- Group member tip: "Only the admin can invite or remove members"
+- Invite invalid screen uses vague copy covering used/revoked/expired — intentional for security
+- Login error never reveals which field is wrong
+- PKT timezone note shown in reminder sheet: "all times in PKT"
+- Every N days cadence behind a secondary option to keep defaults clean
+- Attachment counter 2/5 enforces the 5-attachment limit visually
+- Offline sync: queued pill → syncing progress → conflict toast with server-wins resolution
+- Hard delete: no undo, no soft delete, no recovery shown anywhere
+- Overdue shown as computed badge, no background mutation
+
+---
+
 ## App Identity
 
 | Field | Value |

@@ -1,26 +1,27 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { AuthForm } from "@/components/auth-form";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AppViewport } from "@/components/wafa/app-viewport";
+import { ScreenHeader } from "@/components/wafa/screen-header";
 
 export default function SignUpPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>Sign up to create spaces and manage promises.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthForm mode="signup" />
-          <p className="mt-6 text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className={buttonVariants({ variant: "link", size: "sm" })}>
-              Log in
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+    <AppViewport showTabBar={false}>
+      <ScreenHeader
+        title="Create account"
+        left={
+          <Link
+            href="/"
+            className="inline-flex h-7 w-7 items-center justify-center text-ink-secondary"
+            aria-label="Back"
+          >
+            <ChevronLeft className="size-5 stroke-[1.8]" />
+          </Link>
+        }
+      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[18px] pb-6 pt-4">
+        <AuthForm mode="signup" />
+      </div>
+    </AppViewport>
   );
 }
