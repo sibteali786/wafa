@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PromiseAttachmentsPanel } from "@/components/promise-attachments-panel";
 import { PromiseDetailActions } from "@/components/promise-detail-actions";
+import { PromiseDetailMoreActions } from "@/components/promise-detail-more-actions";
 import { PromiseNotesPanel } from "@/components/promise-notes-panel";
 import { PromiseReminderPicker } from "@/components/promise-reminder-picker";
 import { FullPage } from "@/components/wafa/full-page";
@@ -23,13 +24,37 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
 
   const { data: promise } = await supabase
     .from("promises")
-    .select("id, title, description, due_at, state, space_id, snoozed_until")
+    .select("id, title, description, due_at, state, space_id, snoozed_until, created_by, assigned_to")
     .eq("id", id)
     .single();
 
   if (!promise) notFound();
 
-  const { data: space } = await supabase.from("spaces").select("id, name").eq("id", promise.space_id).single();
+  const { data: space } = await supabase
+    .from("spaces")
+    .select("id, name, space_type")
+    .eq("id", promise.space_id)
+    .single();
+  const { data: membership } = await supabase
+    .from("space_members")
+    .select("role, user_id")
+    .eq("space_id", promise.space_id);
+  const memberIds = membership?.map((m) => m.user_id) ?? [];
+  const { data: profiles } =
+    memberIds.length > 0
+      ? await supabase.from("profiles").select("user_id, display_name").in("user_id", memberIds)
+      : { data: [] };
+  const memberOptions = memberIds.map((memberId) => {
+    const profile = profiles?.find((p) => p.user_id === memberId);
+    return {
+      id: memberId,
+      label: profile?.display_name ?? "Member",
+    };
+  });
+
+  const selfMembership = membership?.find((m) => m.user_id === user.id);
+  const canManagePromise =
+    space?.space_type === "one_to_one" ? promise.created_by === user.id : selfMembership?.role === "admin";
   const { data: notes } = await supabase
     .from("promise_notes")
     .select("id, body, edit_count, updated_at")
@@ -68,6 +93,20 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
             >
               <ChevronLeft className="size-5 stroke-[1.8]" />
             </Link>
+          }
+          right={
+            <PromiseDetailMoreActions
+              promiseId={promise.id}
+              spaceId={promise.space_id}
+              canManage={Boolean(canManagePromise)}
+              members={memberOptions}
+              initialValues={{
+                title: promise.title,
+                description: promise.description,
+                dueAt: promise.due_at,
+                assignedTo: promise.assigned_to,
+              }}
+            />
           }
         />
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-6 pt-4">
