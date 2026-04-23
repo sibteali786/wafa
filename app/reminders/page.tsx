@@ -14,16 +14,26 @@ export default async function RemindersPage() {
     redirect("/login");
   }
 
+  const nowIso = new Date().toISOString();
+  const { data: missed } = await supabase
+    .from("promises")
+    .select("id")
+    .not("due_at", "is", null)
+    .lt("due_at", nowIso)
+    .neq("state", "fulfilled");
+
   return (
     <AppViewport showTabBar activeTab="reminders">
-      <ScreenHeader layout="main" title="Reminders" crumb="Coming in Phase 2" />
+      <ScreenHeader layout="main" title="Reminders" crumb="PKT schedule" />
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-[18px] pb-4 pt-4">
         <p className="text-[13px] leading-relaxed text-ink-secondary">
-          Missed reminders and push fallbacks will show here. This screen is a placeholder for Phase 1 UI
-          shell only.
+          Reminders are configured per promise. Use missed reminders as fallback when push is blocked/offline.
         </p>
-        <Link href="/home" className="text-sm text-primary underline">
-          Back to home
+        <Link
+          href="/reminders/missed"
+          className="rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-foreground"
+        >
+          Missed reminders ({missed?.length ?? 0})
         </Link>
       </div>
     </AppViewport>

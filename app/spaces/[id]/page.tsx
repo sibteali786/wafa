@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle2, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+import { PromiseRowActions } from "@/components/promise-row-actions";
 import { FullPage } from "@/components/wafa/full-page";
 import { Fab } from "@/components/wafa/fab";
 import { TabBar } from "@/components/wafa/tab-bar";
@@ -68,7 +69,11 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
       promise.due_at &&
       promise.due_at < nowIso
   );
-  const pending = nonSuggestionOpen.filter((promise) => !overdue.some((row) => row.id === promise.id));
+  const snoozed = nonSuggestionOpen.filter((promise) => promise.state === "snoozed");
+  const pending = nonSuggestionOpen.filter(
+    (promise) =>
+      promise.state !== "snoozed" && !overdue.some((row) => row.id === promise.id)
+  );
 
   const isGroup = space.space_type === "group";
   const isAdmin = membership.role === "admin";
@@ -122,30 +127,14 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
             <div className="text-[11px] font-medium text-warn-ink">Needs your approval · {suggestions.length}</div>
             <div className="space-y-2">
               {suggestions.map((suggestion) => (
-                <RowItem
-                  key={suggestion.id}
-                  className="border-warn-border bg-warn-bg"
-                  title={suggestion.title}
-                  sub="Suggested promise"
-                  trailing={
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className="inline-flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
-                        aria-label="Approve suggestion"
-                      >
-                        <CheckCircle2 className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex size-7 items-center justify-center rounded-md border border-line-strong bg-card text-ink-secondary"
-                        aria-label="Reject suggestion"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  }
-                />
+                <Link key={suggestion.id} href={`/promises/${suggestion.id}`}>
+                  <RowItem
+                    className="border-warn-border bg-warn-bg"
+                    title={suggestion.title}
+                    sub="Suggested promise"
+                    trailing={<PromiseRowActions promiseId={suggestion.id} mode="approve-reject" />}
+                  />
+                </Link>
               ))}
               {suggestions.length === 0 ? (
                 <p className="text-[12px] text-muted-foreground">No pending suggestions.</p>
@@ -174,13 +163,14 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
                   <p className="text-[12px] text-muted-foreground">No overdue promises.</p>
                 ) : (
                   overdue.map((promise) => (
-                    <RowItem
-                      key={promise.id}
-                      className="border-l-4 border-l-coral"
-                      title={promise.title}
-                      sub="Was due earlier"
-                      trailing={<CheckCircle2 className="size-5 text-muted-foreground" />}
-                    />
+                    <Link key={promise.id} href={`/promises/${promise.id}`}>
+                      <RowItem
+                        className="border-l-4 border-l-coral"
+                        title={promise.title}
+                        sub="Was due earlier"
+                        trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
+                      />
+                    </Link>
                   ))
                 )}
               </div>
@@ -193,12 +183,27 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
                   <p className="text-[12px] text-muted-foreground">No pending promises.</p>
                 ) : (
                   pending.map((promise) => (
-                    <RowItem
-                      key={promise.id}
-                      title={promise.title}
-                      sub="Open"
-                      trailing={<CheckCircle2 className="size-5 text-muted-foreground" />}
-                    />
+                    <Link key={promise.id} href={`/promises/${promise.id}`}>
+                      <RowItem
+                        title={promise.title}
+                        sub="Open"
+                        trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
+                      />
+                    </Link>
+                  ))
+                )}
+              </div>
+            </section>
+            <section className="space-y-2">
+              <div className="text-[11px] font-medium text-muted-foreground">Snoozed</div>
+              <div className="space-y-2">
+                {snoozed.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No snoozed promises.</p>
+                ) : (
+                  snoozed.map((promise) => (
+                    <Link key={promise.id} href={`/promises/${promise.id}`}>
+                      <RowItem title={promise.title} sub="Snoozed" />
+                    </Link>
                   ))
                 )}
               </div>
@@ -212,12 +217,13 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
                 <p className="text-[12px] text-muted-foreground">No open promises.</p>
               ) : (
                 nonSuggestionOpen.map((promise) => (
-                  <RowItem
-                    key={promise.id}
-                    title={promise.title}
-                    sub="Open"
-                    trailing={<CheckCircle2 className="size-5 text-muted-foreground" />}
-                  />
+                  <Link key={promise.id} href={`/promises/${promise.id}`}>
+                    <RowItem
+                      title={promise.title}
+                      sub={promise.state === "snoozed" ? "Snoozed" : "Open"}
+                      trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
+                    />
+                  </Link>
                 ))
               )}
             </div>
@@ -225,7 +231,7 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
         )}
       </div>
 
-      <Fab aria-label="Create promise" />
+      <Fab href={`/promises/new?spaceId=${space.id}`} aria-label="Create promise" />
       </div>
       <TabBar active="home" />
     </FullPage>
