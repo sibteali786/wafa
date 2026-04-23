@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Handshake, Settings } from "lucide-react";
+import { Handshake, Plus, Settings } from "lucide-react";
 import { AppViewport } from "@/components/wafa/app-viewport";
 import { HomeEmptyActions } from "@/components/home-empty-actions";
+import { WafaAvatar } from "@/components/wafa/wafa-avatar";
 import { RowItem } from "@/components/wafa/row-item";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -27,6 +28,60 @@ export default async function HomePage() {
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
 
+  const { data: memberRows } = await supabase
+    .from("space_members")
+    .select("role, space_id, spaces(id, name, space_type)")
+    .eq("user_id", user.id);
+
+  const spaceRows =
+    memberRows
+      ?.map((row) => {
+        const space = Array.isArray(row.spaces) ? row.spaces[0] : row.spaces;
+        if (!space?.id) return null;
+        return {
+          id: space.id as string,
+          role: row.role as "admin" | "member",
+          name: (space.name as string | null) ?? "Untitled space",
+          spaceType: space.space_type as "one_to_one" | "group",
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null) ?? [];
+
+  const spaceIds = spaceRows.map((space) => space.id);
+
+  const { data: promiseRows } =
+    spaceIds.length > 0
+      ? await supabase
+          .from("promises")
+          .select("space_id, state, due_at")
+          .in("space_id", spaceIds)
+      : { data: [] };
+
+  const nowIso = new Date().toISOString();
+  const statsBySpace = new Map<string, { open: number; overdue: number }>();
+  for (const space of spaceRows) {
+    statsBySpace.set(space.id, { open: 0, overdue: 0 });
+  }
+  for (const promise of promiseRows ?? []) {
+    const stats = statsBySpace.get(promise.space_id as string);
+    if (!stats) continue;
+    const isFulfilled = promise.state === "fulfilled";
+    if (!isFulfilled) {
+      stats.open += 1;
+    }
+    if (
+      !isFulfilled &&
+      promise.state !== "snoozed" &&
+      promise.due_at &&
+      promise.due_at < nowIso
+    ) {
+      stats.overdue += 1;
+    }
+  }
+
+  const oneToOneSpaces = spaceRows.filter((space) => space.spaceType === "one_to_one");
+  const groupSpaces = spaceRows.filter((space) => space.spaceType === "group");
+
   const n = count ?? 0;
   const email = user.email ?? "";
 
@@ -37,13 +92,22 @@ export default async function HomePage() {
         title="Spaces"
         crumb={signedInCrumb(email)}
         right={
-          <Link
-            href="/me"
-            className="inline-flex size-8 items-center justify-center rounded-lg border border-line-strong bg-card text-ink-secondary hover:bg-muted/40"
-            aria-label="Settings"
-          >
-            <Settings className="size-4 stroke-[1.8]" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/spaces/new"
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-line-strong bg-card text-ink-secondary hover:bg-muted/40"
+              aria-label="Create new space"
+            >
+              <Plus className="size-4 stroke-[1.8]" />
+            </Link>
+            <Link
+              href="/me"
+              className="inline-flex size-8 items-center justify-center rounded-lg border border-line-strong bg-card text-ink-secondary hover:bg-muted/40"
+              aria-label="Settings"
+            >
+              <Settings className="size-4 stroke-[1.8]" />
+            </Link>
+          </div>
         }
       />
       <div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-[18px] pb-4 pt-2">
@@ -62,12 +126,64 @@ export default async function HomePage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3 py-2">
-            <p className="text-[12px] text-muted-foreground">
-              You belong to {n} space{n === 1 ? "" : "s"}. Full listing arrives in Phase 2.
-            </p>
-            <RowItem title="Example space" sub="Placeholder — connect to data in Phase 2" />
-            <RowItem title="Another space" sub="Placeholder" />
+          <div className="flex flex-col gap-4 py-2">
+            <section className="space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+                1:1 spaces
+              </p>
+              <div className="space-y-2">
+                {oneToOneSpaces.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No 1:1 spaces yet.</p>
+                ) : (
+                  oneToOneSpaces.map((space) => {
+                    const stats = statsBySpace.get(space.id) ?? { open: 0, overdue: 0 };
+                    return (
+                      <Link key={space.id} href={`/spaces/${space.id}`}>
+                        <RowItem
+                          leading={<WafaAvatar initials={space.name.slice(0, 2)} tone="coral" />}
+                          title={space.name}
+                          sub={`${stats.open} open${stats.overdue > 0 ? ` · ${stats.overdue} overdue` : ""}`}
+                          trailing={
+                            stats.overdue > 0 ? (
+                              <span className="inline-flex items-center rounded-full border border-warn-border bg-warn-bg px-2 py-0.5 text-[10px] font-medium text-warn-ink">
+                                overdue
+                              </span>
+                            ) : null
+                          }
+                        />
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Groups</p>
+              <div className="space-y-2">
+                {groupSpaces.length === 0 ? (
+                  <p className="text-[12px] text-muted-foreground">No groups yet.</p>
+                ) : (
+                  groupSpaces.map((space) => {
+                    const stats = statsBySpace.get(space.id) ?? { open: 0, overdue: 0 };
+                    return (
+                      <Link key={space.id} href={`/spaces/${space.id}`}>
+                        <RowItem
+                          leading={<WafaAvatar initials={space.name.slice(0, 2)} tone="teal" />}
+                          title={space.name}
+                          sub={`${stats.open} open${stats.overdue > 0 ? ` · ${stats.overdue} overdue` : ""}`}
+                          trailing={
+                            <span className="inline-flex items-center rounded-full border border-line-strong bg-card px-2 py-0.5 text-[10px] font-medium text-ink-secondary">
+                              {space.role}
+                            </span>
+                          }
+                        />
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+            </section>
           </div>
         )}
       </div>

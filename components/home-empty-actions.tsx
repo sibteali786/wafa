@@ -1,35 +1,15 @@
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { BottomSheet } from "@/components/wafa/bottom-sheet";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export function HomeEmptyActions() {
-  const [open, setOpen] = useState(false);
-
   return (
-    <>
-      <Button type="button" variant="cta" size="cta" className="w-full" onClick={() => setOpen(true)}>
+    <div className="w-full space-y-3">
+      <Link href="/spaces/new" className={buttonVariants({ variant: "cta", size: "cta", className: "w-full" })}>
         Create a space
-      </Button>
+      </Link>
       <p className="max-w-[220px] text-center text-[12px] leading-snug text-muted-foreground">
         To join a space, open the invite link they sent you.
       </p>
-
-      <BottomSheet
-        open={open}
-        onOpenChange={setOpen}
-        title="Create a space"
-        footer={
-          <Button type="button" variant="cta" size="cta" className="w-full" onClick={() => setOpen(false)}>
-            Close
-          </Button>
-        }
-      >
-        <p>
-          Space creation and invites will connect in Phase 2. For now this screen is UI-only.
-        </p>
-      </BottomSheet>
-    </>
+    </div>
   );
 }

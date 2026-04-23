@@ -24,6 +24,7 @@ type AuthMode = "signup" | "login";
 
 type AuthFormProps = {
   mode: AuthMode;
+  nextPath?: string;
 };
 
 const signUpSchema = z.object({
@@ -52,7 +53,7 @@ const fieldShellClass =
 const inputBareClass =
   "h-auto min-h-0 border-0 bg-transparent p-0 text-[13px] shadow-none focus-visible:ring-0 md:text-[13px]";
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, nextPath }: AuthFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [pending, setPending] = useState(false);
@@ -113,8 +114,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (loginError) throw loginError;
       }
 
-      const inviteToken = sessionStorage.getItem("invite_token");
-      router.push(inviteToken ? "/invite/continue" : "/home");
+      const inviteToken =
+        sessionStorage.getItem("wafa.invite") ?? sessionStorage.getItem("invite_token");
+      router.push(inviteToken ? "/invite/continue" : nextPath || "/home");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");

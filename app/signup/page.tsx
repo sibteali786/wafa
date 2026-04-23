@@ -4,7 +4,12 @@ import { AuthForm } from "@/components/auth-form";
 import { AppViewport } from "@/components/wafa/app-viewport";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   return (
     <AppViewport showTabBar={false}>
       <ScreenHeader
@@ -20,7 +25,7 @@ export default function SignUpPage() {
         }
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[18px] pb-6 pt-4">
-        <AuthForm mode="signup" />
+        <AuthForm mode="signup" nextPath={next} />
       </div>
     </AppViewport>
   );

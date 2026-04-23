@@ -1,5 +1,40 @@
 # Wafa — Product Plan
 
+---
+
+## Layout Rules — PERMANENT (apply to every page, every phase)
+
+These rules must be followed for every new page built in any phase. They are non-negotiable and were established after Phase 1 to fix a mistake where pages were wrapped in a fake phone frame.
+
+**Page structure — every authenticated and unauthenticated page:**
+- Full viewport height: `min-h-screen bg-background` (`#fbf8f3`)
+- Centered content column: `max-w-[480px] mx-auto w-full px-4`
+- No `PhoneShell`, no phone frame wrapper, no fake status bar (9:41, signal icons, battery) — the user's real device already provides these
+- Reference `app/home/page.tsx` and `app/login/page.tsx` as the correct pattern
+
+**TabBar — shown/hidden by route:**
+
+| Route | TabBar |
+|---|---|
+| `/home` | ✓ shown, Home active |
+| `/spaces/[id]` | ✓ shown, Home active |
+| `/reminders` | ✓ shown, Reminders active |
+| `/me` | ✓ shown, Me active |
+| `/spaces/new` and sub-routes | ✗ hidden — back button only |
+| `/invite/[token]` | ✗ hidden |
+| `/invite/continue` | ✗ hidden |
+| `/login` | ✗ hidden |
+| `/signup` | ✗ hidden |
+| `/` (landing) | ✗ hidden |
+
+**TabBar implementation:** `fixed bottom-0 left-0 right-0 z-50`, content inside also capped at `max-w-[480px] mx-auto`. Pages with TabBar must add `pb-[62px]` to their scroll container so content is not hidden behind it.
+
+**ScreenHeader:** sits naturally at the top of the page flow — not fixed, not inside any wrapper. Back button on flows without TabBar. Settings/more icon on detail pages.
+
+**FAB (floating action button):** `fixed bottom-[78px] right-4` (16px above the TabBar) on pages that need it (`/spaces/[id]`). Coral background, 52px circle, plus icon.
+
+---
+
 ## Implementation Progress (latest)
 
 ### Completed in this chat (Phase 1)
@@ -38,9 +73,50 @@
   - `components/home-spaces-phase2-stubs.tsx` — wires previews on `/home` (JSON preview + placeholder `spaceId` for invites).
 - **Types:** `next-pwa.d.ts` declares `next-pwa` for TypeScript builds.
 
-### Pending before Phase 2 coding
+### Phase 2 — progress update (this chat)
+- **Spaces APIs (persisted):**
+  - `POST /api/spaces` creates `spaces` row and bootstraps creator membership in `space_members`.
+  - Uses server-authenticated user + admin client writes; group creator gets `admin`, 1:1 creator gets `member` (matches DB constraints).
+- **Invite APIs (hashed tokens):**
+  - `POST /api/invites` generates raw token, stores only `sha256` hash in `invite_links`, returns `/invite/[token]` URL.
+  - `POST /api/invites/[token]/join` verifies hash, inserts membership, marks invite `used` with `used_by/used_at`.
+  - Shared helpers added in `lib/invites.ts`.
+- **J05 flow routes added:**
+  - `/spaces/new` type picker
+  - `/spaces/new/1to1` (name + 4-color avatar picker + privacy note + CTA)
+  - `/spaces/new/group` (group name + CTA)
+- **J05 post-create first-visit state shipped on `/spaces/[id]`:**
+  - 1:1: success/invite panel with dashed URL box + Copy/Share actions (share fallback to copy), waiting-state scaffolding
+  - Group: prominent first-member invite CTA state
+  - Implemented via `components/space-invite-panel.tsx`.
+- **J06 `/spaces/[id]` baseline implemented:**
+  - Header + crumb + more button
+  - Segmented control (`Open`, `Fulfilled`, `All`) visual scaffold
+  - 1:1 sections (overdue + pending) with fulfill icon affordance
+  - Group-admin approval section with inline approve/reject UI affordances
+  - Coral FAB + TabBar shown
+- **Home non-empty state (J03) now real data-driven:**
+  - `/home` now groups spaces into `1:1 spaces` and `Groups`
+  - Overdue badges computed from promises
+  - Header includes `+` entry to create space
+- **Invite auth handoff implemented:**
+  - `/invite/[token]` now validates invite and shows logged-out handoff UI when pending
+  - Token stored in `sessionStorage["wafa.invite"]`
+  - `/invite/continue` now auto-joins and redirects to `/spaces/[id]`
+  - Auth forms honor invite continue flow and optional `next` redirect
+- **Layout contract reinforcement for new Phase 2 pages:**
+  - New routes built with full viewport pattern (`min-h-screen bg-background`, centered `max-w-[480px] mx-auto w-full px-4`)
+  - No phone-frame wrapper used on newly introduced routes
+- **Verification:**
+  - Lint run after changes; edited app files pass (existing generated service-worker warnings remain in `public/`).
+
+### Pending before continuing Phase 2
 - Create real `.env.local` from `.env.local.example` with actual keys
 - Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
+- Wire real approve/reject mutations for group suggestions (current inline controls are UI scaffolding)
+- Build member list route + admin remove/revoke flows (J09 behavior)
+- Replace remaining placeholder pages (`/reminders`) with deck-accurate data views
+- Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
 
 ### Phase 2 — Implementation instructions (next)
 
@@ -441,6 +517,7 @@ Add to `vercel.json`:
 - Join via link flow + [auth edge case](#invite-join-flow-auth-edge-case)
 - Member list with roles
 - Admin: remove member + invalidate link
+- Status: **in progress** (core create/list/invite/join + routes shipped; member admin + suggestion action persistence still pending)
 
 ### Phase 3 — Promises & Reminders
 - Add / edit / delete promises
