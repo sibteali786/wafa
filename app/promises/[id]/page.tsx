@@ -151,7 +151,11 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
           <div className="space-y-2 rounded-lg border border-line-strong bg-card p-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Due</p>
             <p className="text-sm text-foreground">
-              {promise.due_at ? new Date(promise.due_at).toLocaleString() : "No due date"}
+              {promise.due_at
+                ? new Date(promise.due_at).toLocaleString("en-PK", {
+                    timeZone: "Asia/Karachi",
+                  })
+                : "No due date"}
             </p>
             {promise.state === "snoozed" && promise.snoozed_until ? (
               <p className="text-xs text-muted-foreground">

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateTimePicker } from "@/components/wafa/date-time-picker";
 import { cn } from "@/lib/utils";
 
 type MemberOption = {
@@ -25,19 +26,6 @@ type PromiseCreateFormProps = {
   onSuccess?: () => void;
 };
 
-function toDateTimeLocal(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hour = pad(date.getHours());
-  const minute = pad(date.getMinutes());
-  return `${year}-${month}-${day}T${hour}:${minute}`;
-}
-
 export function PromiseCreateForm({
   spaceId,
   members,
@@ -51,7 +39,7 @@ export function PromiseCreateForm({
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
-  const [dueAt, setDueAt] = useState(toDateTimeLocal(initialValues?.dueAt));
+  const [dueAt, setDueAt] = useState<string | null>(initialValues?.dueAt ?? null);
   const [assignedTo, setAssignedTo] = useState(initialValues?.assignedTo ?? "");
 
   function submit() {
@@ -68,7 +56,7 @@ export function PromiseCreateForm({
           body: JSON.stringify({
             title,
             description,
-            dueAt: dueAt || null,
+            dueAt,
             assignedTo: assignedTo || null,
           }),
         });
@@ -89,7 +77,7 @@ export function PromiseCreateForm({
           spaceId,
           title,
           description,
-          dueAt: dueAt || null,
+          dueAt,
           assignedTo: assignedTo || null,
         }),
       });
@@ -121,11 +109,10 @@ export function PromiseCreateForm({
         />
       </div>
 
+      <div className="space-y-1.5">
+        <DateTimePicker value={dueAt} onChange={setDueAt} />
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Due date</label>
-          <Input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
-        </div>
         <div className="space-y-1.5">
           <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Assigned to</label>
           <select
