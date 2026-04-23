@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PromiseDetailActions } from "@/components/promise-detail-actions";
+import { PromiseNotesPanel } from "@/components/promise-notes-panel";
+import { PromiseReminderPicker } from "@/components/promise-reminder-picker";
 import { FullPage } from "@/components/wafa/full-page";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -27,6 +29,21 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
   if (!promise) notFound();
 
   const { data: space } = await supabase.from("spaces").select("id, name").eq("id", promise.space_id).single();
+  const { data: notes } = await supabase
+    .from("promise_notes")
+    .select("id, body, edit_count, updated_at")
+    .eq("promise_id", promise.id)
+    .order("updated_at", { ascending: false });
+
+  const { data: reminder } = await supabase
+    .from("promise_reminders")
+    .select("id, cadence, every_n_days, hour, minute, active")
+    .eq("promise_id", promise.id)
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const stateLabel =
     promise.state === "fulfilled" ? "Fulfilled" : promise.state === "snoozed" ? "Snoozed" : "Pending";
 
@@ -60,6 +77,18 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
             <p className="text-sm text-foreground">{promise.description || "No description"}</p>
           </div>
 
+          <PromiseNotesPanel
+            promiseId={promise.id}
+            initialNotes={
+              notes?.map((note) => ({
+                id: note.id,
+                body: note.body,
+                editCount: note.edit_count ?? 0,
+                updatedAt: note.updated_at,
+              })) ?? []
+            }
+          />
+
           <div className="space-y-2 rounded-lg border border-line-strong bg-card p-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Due</p>
             <p className="text-sm text-foreground">
@@ -74,7 +103,20 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
 
           <div className="space-y-2 rounded-lg border border-line-strong bg-card p-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Reminder</p>
-            <p className="text-sm text-muted-foreground">Add reminder (next step)</p>
+            <PromiseReminderPicker
+              promiseId={promise.id}
+              initialReminder={
+                reminder
+                  ? {
+                      id: reminder.id,
+                      cadence: reminder.cadence,
+                      everyNDays: reminder.every_n_days,
+                      hour: reminder.hour,
+                      minute: reminder.minute,
+                    }
+                  : null
+              }
+            />
           </div>
 
           <PromiseDetailActions

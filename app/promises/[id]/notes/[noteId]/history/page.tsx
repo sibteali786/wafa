@@ -18,7 +18,7 @@ export default async function NoteHistoryPage({ params }: NoteHistoryPageProps) 
   if (!user) redirect("/login");
 
   const { data: versions } = await supabase
-    .from("promise_note_versions")
+    .from("note_history")
     .select("id, body, created_at")
     .eq("promise_id", id)
     .eq("note_id", noteId)

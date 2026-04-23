@@ -110,12 +110,119 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification:**
   - Lint run after changes; edited app files pass (existing generated service-worker warnings remain in `public/`).
 
+### Phase 3 — progress update (latest)
+- **Promise APIs added:**
+  - `POST /api/promises` (`app/api/promises/route.ts`) for create flow.
+  - `PATCH`/`DELETE /api/promises/[id]` (`app/api/promises/[id]/route.ts`) for fulfill/reopen, snooze/unsnooze, approve/reject, and delete.
+- **Create-promise flow from `/spaces/[id]` FAB:**
+  - FAB now navigates to `/promises/new?spaceId=[id]`.
+  - `/promises/new` built with required fields:
+    - title (required), description (optional), due date (optional), assigned to (optional)
+  - Reminder intentionally deferred to promise detail page.
+- **`/spaces/[id]` UX pass completed:**
+  - Full row body navigation to `/promises/[id]`.
+  - Inline actions (fulfill, approve, reject) trigger API inline without navigation.
+  - Action buttons stop bubbling (`preventDefault` + `stopPropagation`) to preserve row-nav behavior.
+  - Snoozed bucket section added in 1:1 view.
+- **Promise detail + snooze action (J07/J06 dependency):**
+  - `/promises/[id]` route added (no TabBar, back button only).
+  - Snooze bottom sheet added with exactly:
+    - `1 hour`, `Later today`, `Tomorrow`, `3 days`.
+- **Note history migration + routes:**
+  - `supabase/migrations/0002_note_history.sql` added (no edits to `0001_init.sql`).
+  - Added `note_history` table and `promise_notes.edit_count`.
+  - Added note history route `/promises/[id]/notes/[noteId]/history` (no TabBar).
+- **Notes APIs with hard constraints implemented:**
+  - `POST /api/promises/[id]/notes`
+  - `PATCH`/`DELETE /api/promises/[id]/notes/[noteId]`
+  - Edit flow writes to `note_history` **before** updating note body.
+  - API enforces author-or-group-admin authorization explicitly.
+  - Delete is hard delete; history cascade handled by `ON DELETE CASCADE`.
+- **Notes optimistic UI (no reload pattern):**
+  - Replaced `window.location.reload()` with local optimistic state updates in `components/promise-notes-panel.tsx`.
+  - Create/edit/delete implement optimistic apply + rollback on failure + toast error feedback.
+  - `edited N×` uses server-returned `edit_count` (not optimistic).
+- **Reminder CRUD + picker sheet added:**
+  - `POST /api/promises/[id]/reminders`
+  - `PATCH`/`DELETE /api/promises/[id]/reminders/[reminderId]`
+  - Reminder picker bottom sheet integrated on `/promises/[id]`.
+- **Missed reminders fallback route implemented:**
+  - `/reminders` now links to real fallback list.
+  - `/reminders/missed` route added with TabBar active on Reminders.
+- **Cron scope constraint implemented (Phase 3 only):**
+  - `app/api/cron/reminders/route.ts` skeleton + scheduling algorithm only.
+  - No Vercel cron config wiring and no Web Push API wiring yet.
+- **Verification:**
+  - Lint run after each major slice; touched files pass.
+
+### Phase 3 — final polish update
+- **Notes UX polish (optimistic + per-note concurrency):**
+  - `components/promise-notes-panel.tsx` now uses local notes state with optimistic create/edit/delete behavior (no full-page reload).
+  - Per-note in-flight tracking added (`pendingByNoteId`) so only the active note row is dimmed/disabled during its request; other notes stay interactive.
+  - Create/edit rollback behavior preserved:
+    - create failure removes optimistic temp note
+    - edit failure restores previous note body
+    - delete failure re-inserts removed note in prior position
+- **Success toasts added (neutral variant, auto-dismiss):**
+  - Notes:
+    - `Note added`
+    - `Note saved`
+    - `Note removed`
+  - Reminders:
+    - `Reminder set`
+    - `Reminder updated`
+    - `Reminder removed`
+  - Toasts use `WafaToast` neutral style; error cases remain coral style.
+  - Auto-dismiss timer set to **2.5s**.
+- **Server-driven ordering for notes:**
+  - After create/edit success, notes are re-sorted by **server-returned** `updated_at` descending.
+  - Most recently updated note appears at top.
+  - `edited N×` display remains server-backed via `edit_count`.
+
+### Phase 3 status
+- **Status: completed** for the scoped Phase 3 requirements currently defined in this plan:
+  - Promise CRUD/state transition APIs + UI wiring
+  - Snooze action and snoozed bucket behavior
+  - Note history migration/route/API constraints
+  - Reminder CRUD + picker sheet
+  - Missed reminders fallback route + cron skeleton-only handler
+  - UX polish pass (per-note pending, success toasts, server-driven note ordering)
+
+### Phase 4 — next actions (immediate)
+1. **R2 bucket + env wiring**
+   - Provision Cloudflare R2 bucket and required credentials.
+   - Add secure server-side env usage for signing/upload operations.
+
+2. **Signed URL generation API**
+   - Implement server endpoint/function to issue short-lived signed upload URLs.
+   - Enforce membership and file-type/size validation before issuing URLs.
+
+3. **Promise attachment API + DB linkage**
+   - Add API route(s) to register uploaded object keys in `promise_attachments`.
+   - Ensure attachment count and MIME/size constraints remain aligned with schema rules.
+
+4. **Promise detail attachment UI**
+   - Replace placeholder attachment block in `/promises/[id]` with real list/grid.
+   - Add upload flow (select file → request signed URL → direct upload → persist metadata).
+
+5. **Retry UX from wireframes**
+   - Add failed-upload chip, retry/remove actions, and attempt counter logic (`max 3 before manual`).
+   - Keep failed uploads non-blocking for promise save/update flows.
+
+6. **Deletion and cleanup consistency**
+   - On promise delete, ensure DB row delete + object cleanup path is defined and validated.
+   - Confirm hard-delete behavior is consistent with product rules (no undo, no soft delete).
+
+7. **Phase 4 verification checklist**
+   - Upload success for image/audio/pdf/video within limits.
+   - Rejection for invalid type/oversize files.
+   - Retry flows and failure handling work as expected.
+   - Lint/type checks pass for touched files.
+
 ### Pending before continuing Phase 2
 - Create real `.env.local` from `.env.local.example` with actual keys
 - Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
-- Wire real approve/reject mutations for group suggestions (current inline controls are UI scaffolding)
 - Build member list route + admin remove/revoke flows (J09 behavior)
-- Replace remaining placeholder pages (`/reminders`) with deck-accurate data views
 - Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
 
 ### Phase 2 — Implementation instructions (next)
