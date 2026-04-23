@@ -8,6 +8,7 @@ import { TabBar } from "@/components/wafa/tab-bar";
 import { RowItem } from "@/components/wafa/row-item";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 import { SpaceInvitePanel } from "@/components/space-invite-panel";
+import { SpaceDetailTabs } from "@/components/space-detail-tabs";
 import { WafaAvatar } from "@/components/wafa/wafa-avatar";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -58,22 +59,8 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
 
   const memberCount = members?.length ?? 0;
   const open = (promises ?? []).filter((promise) => promise.state !== "fulfilled");
-  const fulfilled = (promises ?? []).filter((promise) => promise.state === "fulfilled");
   const suggestions = open.filter((promise) => promise.is_suggestion);
-  const nonSuggestionOpen = open.filter((promise) => !promise.is_suggestion);
   const nowIso = new Date().toISOString();
-
-  const overdue = nonSuggestionOpen.filter(
-    (promise) =>
-      promise.state !== "snoozed" &&
-      promise.due_at &&
-      promise.due_at < nowIso
-  );
-  const snoozed = nonSuggestionOpen.filter((promise) => promise.state === "snoozed");
-  const pending = nonSuggestionOpen.filter(
-    (promise) =>
-      promise.state !== "snoozed" && !overdue.some((row) => row.id === promise.id)
-  );
 
   const isGroup = space.space_type === "group";
   const isAdmin = membership.role === "admin";
@@ -116,12 +103,6 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
           </div>
         ) : null}
 
-        <div className="grid grid-cols-3 rounded-lg bg-muted p-1 text-[12px]">
-          <div className="rounded-md bg-card px-2 py-1.5 text-center font-medium text-foreground">Open · {open.length}</div>
-          <div className="px-2 py-1.5 text-center text-muted-foreground">Fulfilled · {fulfilled.length}</div>
-          <div className="px-2 py-1.5 text-center text-muted-foreground">All</div>
-        </div>
-
         {isGroup && isAdmin ? (
           <section className="space-y-2">
             <div className="text-[11px] font-medium text-warn-ink">Needs your approval · {suggestions.length}</div>
@@ -153,82 +134,7 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
             </div>
           </section>
         ) : null}
-
-        {!isGroup ? (
-          <>
-            <section className="space-y-2">
-              <div className="text-[11px] font-medium text-coral-ink">Overdue</div>
-              <div className="space-y-2">
-                {overdue.length === 0 ? (
-                  <p className="text-[12px] text-muted-foreground">No overdue promises.</p>
-                ) : (
-                  overdue.map((promise) => (
-                    <Link key={promise.id} href={`/promises/${promise.id}`}>
-                      <RowItem
-                        className="border-l-4 border-l-coral"
-                        title={promise.title}
-                        sub="Was due earlier"
-                        trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
-                      />
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="space-y-2">
-              <div className="text-[11px] font-medium text-muted-foreground">Pending</div>
-              <div className="space-y-2">
-                {pending.length === 0 ? (
-                  <p className="text-[12px] text-muted-foreground">No pending promises.</p>
-                ) : (
-                  pending.map((promise) => (
-                    <Link key={promise.id} href={`/promises/${promise.id}`}>
-                      <RowItem
-                        title={promise.title}
-                        sub="Open"
-                        trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
-                      />
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
-            <section className="space-y-2">
-              <div className="text-[11px] font-medium text-muted-foreground">Snoozed</div>
-              <div className="space-y-2">
-                {snoozed.length === 0 ? (
-                  <p className="text-[12px] text-muted-foreground">No snoozed promises.</p>
-                ) : (
-                  snoozed.map((promise) => (
-                    <Link key={promise.id} href={`/promises/${promise.id}`}>
-                      <RowItem title={promise.title} sub="Snoozed" />
-                    </Link>
-                  ))
-                )}
-              </div>
-            </section>
-          </>
-        ) : (
-          <section className="space-y-2">
-            <div className="text-[11px] font-medium text-muted-foreground">Open promises</div>
-            <div className="space-y-2">
-              {nonSuggestionOpen.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground">No open promises.</p>
-              ) : (
-                nonSuggestionOpen.map((promise) => (
-                  <Link key={promise.id} href={`/promises/${promise.id}`}>
-                    <RowItem
-                      title={promise.title}
-                      sub={promise.state === "snoozed" ? "Snoozed" : "Open"}
-                      trailing={<PromiseRowActions promiseId={promise.id} mode="fulfill" />}
-                    />
-                  </Link>
-                ))
-              )}
-            </div>
-          </section>
-        )}
+        <SpaceDetailTabs promises={promises ?? []} nowIso={nowIso} />
       </div>
 
       <Fab href={`/promises/new?spaceId=${space.id}`} aria-label="Create promise" />

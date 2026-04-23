@@ -91,7 +91,7 @@ These rules must be followed for every new page built in any phase. They are non
   - Implemented via `components/space-invite-panel.tsx`.
 - **J06 `/spaces/[id]` baseline implemented:**
   - Header + crumb + more button
-  - Segmented control (`Open`, `Fulfilled`, `All`) visual scaffold
+  - Segmented control (`Open`, `Fulfilled`, `All`) now implemented with interactive shadcn Tabs
   - 1:1 sections (overdue + pending) with fulfill icon affordance
   - Group-admin approval section with inline approve/reject UI affordances
   - Coral FAB + TabBar shown
@@ -124,6 +124,15 @@ These rules must be followed for every new page built in any phase. They are non
   - Inline actions (fulfill, approve, reject) trigger API inline without navigation.
   - Action buttons stop bubbling (`preventDefault` + `stopPropagation`) to preserve row-nav behavior.
   - Snoozed bucket section added in 1:1 view.
+  - Promise list tab logic moved to client component `components/space-detail-tabs.tsx` while keeping `app/spaces/[id]/page.tsx` server-rendered.
+  - Tab behavior:
+    - `Open`: overdue + pending + snoozed
+    - `Fulfilled`: fulfilled list
+    - `All`: overdue → pending → fulfilled → snoozed
+  - Tabs styling aligned to wireframe:
+    - `TabsList`: `rounded-lg bg-muted p-1`
+    - Active trigger pill: `bg-card text-foreground rounded-md shadow-none`
+    - Inactive triggers: `text-muted-foreground`
 - **Promise detail + snooze action (J07/J06 dependency):**
   - `/promises/[id]` route added (no TabBar, back button only).
   - Snooze bottom sheet added with exactly:
