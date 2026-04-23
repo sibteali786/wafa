@@ -24,15 +24,43 @@ Implemented so far:
 - Signup/login/home routes and auth API endpoints
 - Supabase middleware and initial SQL migration
 - shadcn/ui + React Hook Form + Zod setup
-- Phase 2 UI stubs for spaces and invites (wired UI, persistence pending)
+- Spaces and invite flows persisted (create/list/join with token hashing)
+- Group member admin actions (member list, admin remove, removed-member screen)
+- Promise lifecycle APIs and UI (create, fulfill/reopen, snooze/unsnooze, approve/reject)
+- Notes with edit history + optimistic UI
+- Reminder CRUD + picker sheet
+- Attachments with Cloudflare R2 signed upload/download/delete APIs + promise detail grid
+- Promise detail "more" actions for eligible users (edit + delete with confirmation)
+- PKT-safe due date/time picker (date input + fixed time options, timezone-aware submit)
 
 In progress next:
 
-- Persisted spaces and invite flows
-- Member management actions
-- Promise lifecycle, reminders, attachments, and offline sync
+- Infra and rollout tasks (apply latest migrations, configure production R2)
+- Attachment QA hardening (real-device validation, retry edge cases)
+- Offline sync and conflict UX (Phase 5)
 
 See `PLAN.md` for the complete product and technical roadmap.
+
+## Latest updates
+
+Use this template for each new session update:
+
+```md
+### YYYY-MM-DD
+
+- **What shipped:** <feature/API/UI change>
+- **Behavior impact:** <what users can do now>
+- **Infra/data changes:** <migrations/env/dependency updates>
+- **Verification:** <lint/tests/manual checks>
+```
+
+### 2026-04-23
+
+- Closed Phase 2 member-admin gaps: group member list with role badges, admin remove flow, and removed-member state screen.
+- Tightened invite revocation targeting using `invite_links.intended_for_user_id` via migration `0003_invite_intended_for.sql`.
+- Shipped Phase 4 attachments foundation: R2 env wiring, signed upload/download/delete APIs, attachment grid/upload flow on promise detail, and best-effort R2 cleanup on promise delete.
+- Added promise detail `⋯` actions for permitted users (1:1 creator, group admin): edit bottom-sheet flow + destructive delete confirmation flow.
+- Replaced `datetime-local` due input with PKT-safe date + fixed-time picker and timezone-aware due date rendering.
 
 ## Tech stack
 
@@ -64,12 +92,18 @@ Populate required Supabase values in `.env.local`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SECRET_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
 
-### 3) Apply database migration
+### 3) Apply database migrations
 
-Run the initial migration in your Supabase project:
+Run migrations in order in your Supabase project:
 
 - `supabase/migrations/0001_init.sql`
+- `supabase/migrations/0002_note_history.sql`
+- `supabase/migrations/0003_invite_intended_for.sql`
 
 ### 4) Start the app
 

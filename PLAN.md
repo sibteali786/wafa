@@ -226,6 +226,32 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification:**
   - `npm run lint` passes with no errors in touched source files (existing generated service-worker warnings remain under `public/`).
 
+### Promise detail + due-date UX update (this chat)
+- **Promise detail more-actions sheet added (`/promises/[id]`):**
+  - `⋯` button now opens a bottom sheet with:
+    - `Edit promise`
+    - `Delete promise`
+    - `Cancel`
+  - Edit opens inline bottom-sheet form using existing `PromiseCreateForm` in edit mode.
+  - Delete opens confirmation sheet with permanent-delete warning copy and destructive confirm action.
+  - On delete success, user is redirected back to `/spaces/[id]`.
+- **Role-based action visibility enforced on promise detail:**
+  - `Edit promise` + `Delete promise` shown only for:
+    - 1:1 promise creator
+    - group admin
+  - Users without permission do not see the `⋯` control.
+- **Due date/time input hardening (PKT-safe):**
+  - Replaced `datetime-local` field with custom `DateTimePicker` (`components/wafa/date-time-picker.tsx`):
+    - native `type="date"` input
+    - fixed time select options (`06:00 AM` to `10:00 PM`)
+    - default time `09:00 AM`
+  - Submit now emits timezone-aware PKT ISO (`+05:00`) for deterministic server parsing.
+  - Clearing date sets `dueAt = null`.
+  - Promise detail due display now formats with explicit PKT timezone:
+    - `toLocaleString("en-PK", { timeZone: "Asia/Karachi" })`
+- **Verification:**
+  - `npm run lint` rerun after these changes; no source-file lint errors.
+
 ### Phase 4 — next actions (immediate)
 1. **Infra/apply steps still required**
    - Provision Cloudflare R2 bucket (if not yet provisioned in the target account).
@@ -244,6 +270,7 @@ These rules must be followed for every new page built in any phase. They are non
 ### Pending before continuing Phase 2
 - Create real `.env.local` from `.env.local.example` with actual keys
 - Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
+- Apply note-history migration `supabase/migrations/0002_note_history.sql`
 - Apply latest invite-target migration `supabase/migrations/0003_invite_intended_for.sql`
 - Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
 
@@ -654,6 +681,7 @@ Add to `vercel.json`:
 - Notes on promises with edit history
 - Reminder scheduling via Vercel cron
 - Web push notifications + in-app missed reminders fallback
+- Status: **completed for current scoped requirements** (including promise detail edit/delete UI and PKT-safe due-date input UX)
 
 ### Phase 4 — Attachments
 - Cloudflare R2 bucket setup
