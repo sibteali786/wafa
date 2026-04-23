@@ -39,7 +39,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not a member of this space" }, { status: 403 });
   }
 
-  const isSuggestion = membership.role !== "admin";
+  const { data: space, error: spaceError } = await supabase
+    .from("spaces")
+    .select("space_type")
+    .eq("id", payload.spaceId)
+    .single();
+
+  if (spaceError || !space) {
+    return NextResponse.json({ error: "Space not found" }, { status: 404 });
+  }
+
+  // RLS alignment:
+  // - one_to_one inserts must use is_suggestion = false
+  // - group inserts are suggestions only for non-admin members
+  const isSuggestion = space.space_type === "group" && membership.role !== "admin";
   const { data: inserted, error: insertError } = await supabase
     .from("promises")
     .insert({
