@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { PromiseAttachmentsPanel } from "@/components/promise-attachments-panel";
 import { PromiseDetailActions } from "@/components/promise-detail-actions";
 import { PromiseNotesPanel } from "@/components/promise-notes-panel";
 import { PromiseReminderPicker } from "@/components/promise-reminder-picker";
@@ -43,6 +44,12 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const { data: attachments } = await supabase
+    .from("promise_attachments")
+    .select("id, kind, mime_type, size_bytes, created_at, status")
+    .eq("promise_id", promise.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
 
   const stateLabel =
     promise.state === "fulfilled" ? "Fulfilled" : promise.state === "snoozed" ? "Snoozed" : "Pending";
@@ -85,6 +92,19 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
                 body: note.body,
                 editCount: note.edit_count ?? 0,
                 updatedAt: note.updated_at,
+              })) ?? []
+            }
+          />
+
+          <PromiseAttachmentsPanel
+            promiseId={promise.id}
+            initialAttachments={
+              attachments?.map((attachment) => ({
+                id: attachment.id,
+                kind: attachment.kind as "image" | "audio" | "pdf" | "video",
+                mimeType: attachment.mime_type,
+                sizeBytes: attachment.size_bytes,
+                createdAt: attachment.created_at,
               })) ?? []
             }
           />

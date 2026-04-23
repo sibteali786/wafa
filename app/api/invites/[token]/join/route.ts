@@ -8,6 +8,7 @@ type InviteRow = {
   space_id: string;
   intended_role: "admin" | "member";
   status: "pending" | "used" | "revoked";
+  intended_for_user_id: string | null;
 };
 
 export async function POST(
@@ -29,7 +30,7 @@ export async function POST(
   const admin = createAdminClient();
   const { data: invite, error: inviteError } = await admin
     .from("invite_links")
-    .select("id, space_id, intended_role, status")
+    .select("id, space_id, intended_role, status, intended_for_user_id")
     .eq("token_hash", tokenHash)
     .maybeSingle<InviteRow>();
 
@@ -65,6 +66,7 @@ export async function POST(
       status: "used",
       used_by: user.id,
       used_at: new Date().toISOString(),
+      intended_for_user_id: user.id,
     })
     .eq("id", invite.id)
     .eq("status", "pending");

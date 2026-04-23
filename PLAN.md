@@ -197,41 +197,54 @@ These rules must be followed for every new page built in any phase. They are non
   - Missed reminders fallback route + cron skeleton-only handler
   - UX polish pass (per-note pending, success toasts, server-driven note ordering)
 
+### Phase 2 + Phase 4 — progress update (this chat)
+- **Phase 2 admin gaps closed (J09 behavior):**
+  - Group member list now shown in `/spaces/[id]` with role badges (`admin` / `member`).
+  - Admin-only member action sheet added with destructive remove + confirmation copy.
+  - `DELETE /api/spaces/[id]/members/[userId]` added for remove-member flow.
+  - Removed-member route behavior updated: `/spaces/[id]` now shows dedicated "You're no longer in this space" screen (not `notFound`) with CTA to `/home`.
+  - Role visibility enforced: no member-management affordance for non-admins; no member-management UI in 1:1 spaces.
+- **Invite revocation targeting tightened:**
+  - New migration added at `supabase/migrations/0003_invite_intended_for.sql` to add `invite_links.intended_for_user_id`.
+  - Invite create remains nullable for `intended_for_user_id`.
+  - Invite join (`POST /api/invites/[token]/join`) now stamps `intended_for_user_id = joining user` when marking invite `used`.
+  - Member removal now revokes only matching pending invites (`used_by = removed_user` or `intended_for_user_id = removed_user`), not all space invites.
+- **Phase 4 attachments foundation + UI shipped:**
+  - Added server-only R2 env handling (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`) and placeholders in `.env.local.example`.
+  - Added signed URL + object helper utilities (`lib/r2.ts`) and attachment validation rules (`lib/attachments.ts`).
+  - New attachment APIs:
+    - `POST /api/attachments/request-upload`
+    - `POST /api/attachments/complete`
+    - `GET /api/attachments/[id]/url`
+    - `DELETE /api/attachments/[id]`
+  - `/promises/[id]` attachment UI now includes:
+    - 3-column grid
+    - `Attachments · N/5` counter
+    - add-slot upload flow (signed PUT -> direct upload -> complete)
+    - optimistic upload progress + failed chip actions (retry/remove)
+  - Promise delete path now performs best-effort R2 object cleanup before DB delete (`DELETE /api/promises/[id]`).
+- **Verification:**
+  - `npm run lint` passes with no errors in touched source files (existing generated service-worker warnings remain under `public/`).
+
 ### Phase 4 — next actions (immediate)
-1. **R2 bucket + env wiring**
-   - Provision Cloudflare R2 bucket and required credentials.
-   - Add secure server-side env usage for signing/upload operations.
+1. **Infra/apply steps still required**
+   - Provision Cloudflare R2 bucket (if not yet provisioned in the target account).
+   - Populate real R2 env values in deployment/runtime environments.
+   - Apply latest DB migrations including `0003_invite_intended_for.sql`.
 
-2. **Signed URL generation API**
-   - Implement server endpoint/function to issue short-lived signed upload URLs.
-   - Enforce membership and file-type/size validation before issuing URLs.
-
-3. **Promise attachment API + DB linkage**
-   - Add API route(s) to register uploaded object keys in `promise_attachments`.
-   - Ensure attachment count and MIME/size constraints remain aligned with schema rules.
-
-4. **Promise detail attachment UI**
-   - Replace placeholder attachment block in `/promises/[id]` with real list/grid.
-   - Add upload flow (select file → request signed URL → direct upload → persist metadata).
-
-5. **Retry UX from wireframes**
-   - Add failed-upload chip, retry/remove actions, and attempt counter logic (`max 3 before manual`).
+2. **Retry UX hard-cap parity**
+   - Enforce strict `max 3 before manual` retry lock behavior in client state transitions.
    - Keep failed uploads non-blocking for promise save/update flows.
 
-6. **Deletion and cleanup consistency**
-   - On promise delete, ensure DB row delete + object cleanup path is defined and validated.
-   - Confirm hard-delete behavior is consistent with product rules (no undo, no soft delete).
-
-7. **Phase 4 verification checklist**
-   - Upload success for image/audio/pdf/video within limits.
-   - Rejection for invalid type/oversize files.
-   - Retry flows and failure handling work as expected.
-   - Lint/type checks pass for touched files.
+3. **Attachments QA checklist**
+   - Validate upload/open/delete for image/audio/pdf/video across real devices.
+   - Validate invalid type/oversize rejection (client + server).
+   - Validate 5-attachment cap and member-based access control in multi-user scenarios.
 
 ### Pending before continuing Phase 2
 - Create real `.env.local` from `.env.local.example` with actual keys
 - Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
-- Build member list route + admin remove/revoke flows (J09 behavior)
+- Apply latest invite-target migration `supabase/migrations/0003_invite_intended_for.sql`
 - Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
 
 ### Phase 2 — Implementation instructions (next)
@@ -633,7 +646,7 @@ Add to `vercel.json`:
 - Join via link flow + [auth edge case](#invite-join-flow-auth-edge-case)
 - Member list with roles
 - Admin: remove member + invalidate link
-- Status: **in progress** (core create/list/invite/join + routes shipped; member admin + suggestion action persistence still pending)
+- Status: **in progress** (core create/list/invite/join + member admin/remove shipped; suggestion action persistence still pending)
 
 ### Phase 3 — Promises & Reminders
 - Add / edit / delete promises
@@ -648,6 +661,7 @@ Add to `vercel.json`:
 - Upload flow: image, audio, PDF, video
 - Attachment display in promise detail
 - Hard delete cleanup on promise deletion
+- Status: **in progress** (core APIs + UI + delete cleanup shipped; infra provisioning + final QA remain)
 
 ### Phase 5 — Offline Sync
 - IndexedDB queue setup (idb library)

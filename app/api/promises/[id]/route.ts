@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { deleteObjectFromR2 } from "@/lib/r2";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type PromiseAction =
@@ -161,6 +163,26 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const admin = createAdminClient();
+  const { data: attachmentRows } = await admin
+    .from("promise_attachments")
+    .select("object_key")
+    .eq("promise_id", id)
+    .eq("status", "active");
+
+  for (const attachment of attachmentRows ?? []) {
+    try {
+      await deleteObjectFromR2(attachment.object_key);
+    } catch (error) {
+      console.error("R2 object cleanup failed", {
+        promiseId: id,
+        objectKey: attachment.object_key,
+        error,
+      });
+    }
+  }
+
   const { error } = await supabase.from("promises").delete().eq("id", id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

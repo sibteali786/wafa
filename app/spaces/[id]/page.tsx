@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { PromiseRowActions } from "@/components/promise-row-actions";
+import { SpaceMembersPanel } from "@/components/space-members-panel";
 import { FullPage } from "@/components/wafa/full-page";
 import { Fab } from "@/components/wafa/fab";
 import { TabBar } from "@/components/wafa/tab-bar";
@@ -10,6 +11,7 @@ import { ScreenHeader } from "@/components/wafa/screen-header";
 import { SpaceInvitePanel } from "@/components/space-invite-panel";
 import { SpaceDetailTabs } from "@/components/space-detail-tabs";
 import { WafaAvatar } from "@/components/wafa/wafa-avatar";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type SpacePageProps = {
@@ -27,6 +29,15 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+  const admin = createAdminClient();
+
+  const { data: space } = await admin
+    .from("spaces")
+    .select("id, name, space_type")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!space) notFound();
 
   const { data: membership } = await supabase
     .from("space_members")
@@ -35,20 +46,46 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!membership) notFound();
+  if (!membership) {
+    return (
+      <FullPage>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="w-full rounded-2xl border border-line-strong bg-card p-5">
+            <h1 className="text-lg font-semibold text-foreground">You&apos;re no longer in this space</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This can happen if a group admin removed you.
+            </p>
+            <Link
+              href="/home"
+              className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-line-strong bg-card text-sm font-medium text-primary-ink hover:bg-muted/40"
+            >
+              Go to my spaces
+            </Link>
+          </div>
+        </div>
+      </FullPage>
+    );
+  }
 
-  const { data: space } = await supabase
-    .from("spaces")
-    .select("id, name, space_type")
-    .eq("id", id)
-    .single();
-
-  if (!space) notFound();
-
-  const { data: members } = await supabase
+  const { data: members } = await admin
     .from("space_members")
     .select("user_id, role")
     .eq("space_id", id);
+
+  const memberIds = (members ?? []).map((member) => member.user_id);
+  const { data: profiles } =
+    memberIds.length > 0
+      ? await admin.from("profiles").select("user_id, display_name").in("user_id", memberIds)
+      : { data: [] };
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.user_id, profile.display_name]));
+
+  const displayMembers = (members ?? []).map((member) => ({
+    userId: member.user_id,
+    role: member.role as "admin" | "member",
+    displayName:
+      profileById.get(member.user_id) ??
+      (member.user_id === user.id ? "You" : `Member ${member.user_id.slice(0, 6)}`),
+  }));
 
   const { data: promises } = await supabase
     .from("promises")
@@ -133,6 +170,14 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
               ))}
             </div>
           </section>
+        ) : null}
+        {isGroup ? (
+          <SpaceMembersPanel
+            spaceId={space.id}
+            currentUserId={user.id}
+            isAdmin={isAdmin}
+            initialMembers={displayMembers}
+          />
         ) : null}
         <SpaceDetailTabs promises={promises ?? []} nowIso={nowIso} />
       </div>
