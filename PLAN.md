@@ -101,9 +101,9 @@ These rules must be followed for every new page built in any phase. They are non
   - Header includes `+` entry to create space
 - **Invite auth handoff implemented:**
   - `/invite/[token]` now validates invite and shows logged-out handoff UI when pending
-  - Token stored in `sessionStorage["wafa.invite"]`
-  - `/invite/continue` now auto-joins and redirects to `/spaces/[id]`
-  - Auth forms honor invite continue flow and optional `next` redirect
+  - Token is now stored server-side in HttpOnly cookie `wafa_invite_token` via `POST /api/invite/store-token`
+  - `/invite/continue` now runs server-side, auto-joins, clears invite cookie, and redirects to `/spaces/[id]`
+  - Auth forms use sanitized `next` redirects only (`sanitizeRedirect`) and continue to honor invite flow
 - **Layout contract reinforcement for new Phase 2 pages:**
   - New routes built with full viewport pattern (`min-h-screen bg-background`, centered `max-w-[480px] mx-auto w-full px-4`)
   - No phone-frame wrapper used on newly introduced routes
@@ -252,6 +252,22 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification:**
   - `npm run lint` rerun after these changes; no source-file lint errors.
 
+### Auth security hardening update (this chat)
+- **P0 — Redirect sanitization shipped:**
+  - Added `sanitizeRedirect(next)` in `lib/utils.ts`.
+  - Auth form navigation now uses sanitized internal-only redirect targets.
+- **P1 — Invite token storage moved to HttpOnly cookie:**
+  - Added `POST /api/invite/store-token` to validate token shape and set:
+    - cookie: `wafa_invite_token`
+    - flags: `HttpOnly`, `SameSite=Lax`, `Secure`, `Path=/`, `Max-Age=3600`
+  - Removed client `sessionStorage` invite-token handling from runtime flow.
+  - `/invite/continue` converted to server-side join flow with cookie cleanup on completion/failure.
+- **P2 — Profile upsert auth model hardened:**
+  - `POST /api/profile/upsert` now uses session-based auth (`createServerSupabaseClient` + `auth.getUser()`).
+  - Removed bearer-token header dependency from the auth form caller.
+- **Verification completed:**
+  - Manual checks passed for redirect sanitization, invite join handoff, HttpOnly invite cookie behavior, and unauthenticated `401` from `/api/profile/upsert`.
+
 ### Phase 4 — next actions (immediate)
 1. **Infra/apply steps still required**
    - Provision Cloudflare R2 bucket (if not yet provisioned in the target account).
@@ -297,7 +313,7 @@ These rules must be followed for every new page built in any phase. They are non
 
 4. **Join via link**  
    - Page: `GET /invite/[token]` validates token, shows space summary; **Join** calls `POST` that verifies hash, inserts `space_members` if allowed, marks invite `used`, redirects to the space.  
-   - **Auth edge case** (see also [Invite join flow](#invite-join-flow-auth-edge-case) below): if unauthenticated, store token in `sessionStorage`, redirect to `/login` or `/signup`, then after auth auto-join and redirect to space.
+   - **Auth edge case** (see also [Invite join flow](#invite-join-flow-auth-edge-case) below): if unauthenticated, store token in HttpOnly cookie (`wafa_invite_token`) via route handler, redirect to `/login` or `/signup`, then after auth `/invite/continue` auto-joins server-side and redirects to space.
 
 5. **Members**  
    - Member list UI with roles.  
@@ -314,7 +330,7 @@ These rules must be followed for every new page built in any phase. They are non
 **Product checklist (from plan)**
 - Spaces CRUD (1:1 + group) — create + list first; edit/delete if needed for v1.
 - Invite link generation and **one-time** join (status `pending` → `used`).
-- Invite auth edge case: `sessionStorage` token → auth → auto-join → space.
+- Invite auth edge case: HttpOnly invite cookie → auth → `/invite/continue` server auto-join → space.
 - Member list with roles; admin remove member + invalidate relevant invite.
 
 ---
@@ -328,8 +344,8 @@ A wireframe deck (`Wafa_Wireframes_Deck.html`) covering 10 journeys was reviewed
 #### 1. `/invite/continue` — post-auth auto-join screen
 The unauthenticated invite edge case is in the spec but not wireframed. When a user opens an invite link without being logged in:
 - Show a minimal screen: space name preview + "You've been invited — sign up or log in to join"
-- After auth, `/invite/continue` reads `sessionStorage.invite_token`, auto-calls join, then redirects to the space
-- On failure (used/revoked/invalid token): clear token, show same invalid-invite error screen as the authenticated flow, redirect to `/home`
+- After auth, `/invite/continue` reads `wafa_invite_token` from server cookies, auto-calls join server-side, then redirects to the space
+- On failure (used/revoked/invalid token): clear invite cookie, show same invalid-invite error screen as the authenticated flow, redirect to `/home`
 
 #### 2. Missed reminders list screen — push notification fallback
 The Reminders tab bell icon shows a notification dot but no list screen is wireframed. This is the in-app fallback when web push is blocked (common on iOS Safari).
@@ -699,11 +715,11 @@ Add to `vercel.json`:
 
 ## Invite join flow (auth edge case)
 If a user opens an invite link while not authenticated:
-1. Store the invite token in sessionStorage
+1. Store the invite token in HttpOnly cookie `wafa_invite_token` via `POST /api/invite/store-token`
 2. Redirect to /login or /signup
-3. After successful auth, read token from sessionStorage
-4. Auto-POST to /api/invites/:token/join
-5. Redirect to the space — seamless experience
+3. After successful auth, load `/invite/continue` (server flow reads cookie)
+4. Server auto-POSTs to `/api/invites/:token/join`
+5. Clear invite cookie and redirect to the space — seamless experience
 
 ---
 
