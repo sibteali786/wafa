@@ -11,7 +11,13 @@ type InviteHandoffCardProps = {
 
 export function InviteHandoffCard({ token, spaceName }: InviteHandoffCardProps) {
   useEffect(() => {
-    sessionStorage.setItem("wafa.invite", token);
+    void fetch("/api/invite/store-token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    });
   }, [token]);
 
   return (

@@ -1,53 +1,61 @@
-"use client";
+import { cookies } from "next/headers";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { FullPage } from "@/components/wafa/full-page";
-import { ScreenHeader } from "@/components/wafa/screen-header";
+function clearInviteCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  cookieStore.set("wafa_invite_token", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: 0,
+  });
+}
 
-/**
- * Reads cached invite token, joins, and redirects.
- */
-export default function InviteContinuePage() {
-  const router = useRouter();
+export default async function InviteContinuePage() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("wafa_invite_token")?.value?.trim();
 
-  useEffect(() => {
-    let alive = true;
-    async function run() {
-      const token = sessionStorage.getItem("wafa.invite");
-      if (!token) {
-        router.replace("/home");
-        return;
-      }
+  if (!token) {
+    redirect("/home");
+  }
 
-      const response = await fetch(`/api/invites/${encodeURIComponent(token)}/join`, {
-        method: "POST",
-      });
-      const payload = (await response.json()) as { spaceId?: string };
-      sessionStorage.removeItem("wafa.invite");
-      if (!alive) return;
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-      if (response.ok && payload.spaceId) {
-        router.replace(`/spaces/${payload.spaceId}`);
-      } else {
-        router.replace(`/invite/${encodeURIComponent(token)}`);
-      }
-    }
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent("/invite/continue")}`);
+  }
 
-    run();
-    return () => {
-      alive = false;
-    };
-  }, [router]);
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+  if (!host) {
+    clearInviteCookie(cookieStore);
+    redirect("/home");
+  }
+  const cookieHeader = cookieStore
+    .getAll()
+    .map(({ name, value }) => `${name}=${value}`)
+    .join("; ");
 
-  return (
-    <FullPage>
-      <div className="flex min-h-screen flex-col">
-        <ScreenHeader title="Invite" className="!px-4" />
-        <div className="flex flex-1 items-center justify-center pb-8 pt-4 text-center text-sm text-muted-foreground">
-          Continuing…
-        </div>
-      </div>
-    </FullPage>
-  );
+  const response = await fetch(`${protocol}://${host}/api/invites/${encodeURIComponent(token)}/join`, {
+    method: "POST",
+    headers: {
+      cookie: cookieHeader,
+    },
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as { spaceId?: string } | null;
+
+  clearInviteCookie(cookieStore);
+
+  if (!response.ok || !payload?.spaceId) {
+    redirect("/home");
+  }
+
+  redirect(`/spaces/${payload.spaceId}`);
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type UpsertProfilePayload = {
   displayName?: string;
@@ -7,13 +7,14 @@ type UpsertProfilePayload = {
 };
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const accessToken = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (!accessToken) {
-    return NextResponse.json({ error: "Missing bearer token" }, { status: 401 });
+  if (userError || !user) {
+    return NextResponse.json({ error: "Invalid session" }, { status: 401 });
   }
 
   const payload = (await request.json()) as UpsertProfilePayload;
@@ -27,15 +28,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createAdminClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
-  if (userError || !userData.user) {
-    return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-  }
-
   const { error } = await supabase.from("profiles").upsert(
     {
-      user_id: userData.user.id,
+      user_id: user.id,
       display_name: displayName,
       timezone,
     },

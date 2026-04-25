@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeRedirect } from "@/lib/utils";
 
 type AuthMode = "signup" | "login";
 
@@ -85,26 +85,22 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
         });
         if (signUpError) throw signUpError;
 
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: signUpValues.email,
           password: signUpValues.password,
         });
         if (signInError) throw signInError;
 
-        const token = data.session?.access_token;
-        if (token) {
-          await fetch("/api/profile/upsert", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              displayName: signUpValues.displayName,
-              timezone: "Asia/Karachi",
-            }),
-          });
-        }
+        await fetch("/api/profile/upsert", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            displayName: signUpValues.displayName,
+            timezone: "Asia/Karachi",
+          }),
+        });
       } else {
         const loginValues = values as LoginValues;
         const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -114,9 +110,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
         if (loginError) throw loginError;
       }
 
-      const inviteToken =
-        sessionStorage.getItem("wafa.invite") ?? sessionStorage.getItem("invite_token");
-      router.push(inviteToken ? "/invite/continue" : nextPath || "/home");
+      router.push(sanitizeRedirect(nextPath));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
