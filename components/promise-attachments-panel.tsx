@@ -27,6 +27,8 @@ type PromiseAttachmentsPanelProps = {
   initialAttachments: Attachment[];
 };
 
+const MAX_RETRY_ATTEMPTS = 3;
+
 let uploadIdSeq = 0;
 function nextUploadId() {
   uploadIdSeq += 1;
@@ -71,8 +73,9 @@ export function PromiseAttachmentsPanel({
         const response = await fetch(`/api/attachments/${attachment.id}/url`);
         if (!response.ok) return;
         const payload = (await response.json()) as { url?: string };
-        if (!payload.url) return;
-        setPreviewUrls((prev) => ({ ...prev, [attachment.id]: payload.url }));
+        const previewUrl = payload.url;
+        if (!previewUrl) return;
+        setPreviewUrls((prev) => ({ ...prev, [attachment.id]: previewUrl }));
       })();
     });
   }, [imageAttachments, previewUrls]);
@@ -225,12 +228,32 @@ export function PromiseAttachmentsPanel({
   function retryUpload(uploadId: string) {
     const upload = uploads.find((item) => item.id === uploadId);
     if (!upload) return;
+    if (upload.attempts >= MAX_RETRY_ATTEMPTS) {
+      setError("Upload failed. Tap to try again manually.");
+      return;
+    }
     const attempts = upload.attempts + 1;
     const next = { ...upload, attempts };
     setUploads((prev) =>
       prev.map((item) => (item.id === uploadId ? { ...item, attempts, state: "uploading", error: undefined } : item))
     );
     void runUpload(next);
+  }
+
+  function retryUploadManually(uploadId: string) {
+    const upload = uploads.find((item) => item.id === uploadId);
+    if (!upload) return;
+
+    const replacement: UploadItem = {
+      id: nextUploadId(),
+      file: upload.file,
+      progress: 0,
+      attempts: 1,
+      state: "uploading",
+    };
+
+    setUploads((prev) => [...prev.filter((item) => item.id !== uploadId), replacement]);
+    void runUpload(replacement);
   }
 
   function removeFailedUpload(uploadId: string) {
@@ -280,15 +303,31 @@ export function PromiseAttachmentsPanel({
               ) : (
                 <div className="space-y-1">
                   <p className="text-[11px] text-coral-ink">Upload failed</p>
-                  <p className="text-[10px] text-coral-ink">attempts: {upload.attempts} · max 3 before manual</p>
+                  {upload.attempts >= MAX_RETRY_ATTEMPTS ? (
+                    <p className="text-[10px] text-coral-ink">Upload failed - tap to try again manually</p>
+                  ) : (
+                    <p className="text-[10px] text-coral-ink">
+                      attempts: {upload.attempts} · max {MAX_RETRY_ATTEMPTS} before manual
+                    </p>
+                  )}
                   <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => retryUpload(upload.id)}
-                      className="rounded border border-line-strong px-2 py-0.5 text-[10px]"
-                    >
-                      Retry
-                    </button>
+                    {upload.attempts >= MAX_RETRY_ATTEMPTS ? (
+                      <button
+                        type="button"
+                        onClick={() => retryUploadManually(upload.id)}
+                        className="rounded border border-line-strong px-2 py-0.5 text-[10px]"
+                      >
+                        Try manually
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => retryUpload(upload.id)}
+                        className="rounded border border-line-strong px-2 py-0.5 text-[10px]"
+                      >
+                        Retry
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeFailedUpload(upload.id)}

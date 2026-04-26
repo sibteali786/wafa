@@ -296,12 +296,21 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification:**
   - `npm run lint` passes for touched files (existing warnings in generated service-worker assets remain unchanged).
 
-### Phase 4 — next actions (immediate)
-1. **Retry UX hard-cap parity**
-   - Enforce strict `max 3 before manual` retry lock behavior in client state transitions.
-   - Keep failed uploads non-blocking for promise save/update flows.
+### Phase 4 retry hard-cap update (this chat)
+- **Retry limit parity shipped in attachment upload UI:**
+  - `components/promise-attachments-panel.tsx` now enforces strict max retry attempts (`3`) before manual retry.
+  - Auto-retry path is blocked once attempts reach the cap; users see explicit manual fallback copy.
+- **Manual retry fallback behavior added:**
+  - Failed chips at cap now show `Try manually`, which starts a fresh upload cycle (new temp upload item, attempts reset to `1`).
+  - Failed upload chips remain removable and non-blocking for normal promise flows.
+- **Type safety fix included:**
+  - Preview URL state update now uses a narrowed local constant (`previewUrl`) before `setPreviewUrls`, resolving `string | undefined` to `string`.
+- **Verification:**
+  - `npm run lint` passes for touched files.
+  - `npx tsc --noEmit` confirms this file-level type issue is fixed (repo still has separate pre-existing type errors in other files).
 
-2. **Attachments QA checklist**
+### Phase 4 — next actions (immediate)
+1. **Attachments QA checklist**
    - Validate upload/open/delete for image/audio/pdf/video across real devices.
    - Validate invalid type/oversize rejection (client + server).
    - Validate 5-attachment cap and member-based access control in multi-user scenarios.
