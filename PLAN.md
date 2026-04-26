@@ -268,26 +268,33 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification completed:**
   - Manual checks passed for redirect sanitization, invite join handoff, HttpOnly invite cookie behavior, and unauthenticated `401` from `/api/profile/upsert`.
 
-### Phase 4 — next actions (immediate)
-1. **Infra/apply steps still required**
-   - Provision Cloudflare R2 bucket (if not yet provisioned in the target account).
-   - Populate real R2 env values in deployment/runtime environments.
-   - Apply latest DB migrations including `0003_invite_intended_for.sql`.
+### Infra R2 + migrations execution update (this chat)
+- **Environment and storage readiness validated:**
+  - Local `.env.local` includes required Supabase + R2 variables used by server runtime.
+  - Cloudflare R2 bucket access verified with configured account + credentials (`HeadBucket` check passed).
+- **Migrations applied/verified on target Supabase project:**
+  - `npx supabase migration list` confirms local/remote parity for `0001`, `0002`, `0003`.
+  - `npx supabase db push` reports remote database is up to date.
+  - Schema smoke checks passed for:
+    - `public.spaces` table
+    - `public.note_history` table
+    - `public.invite_links.intended_for_user_id` column
+- **API/integration smoke checks completed:**
+  - Attachment APIs (`request-upload`, `complete`, `[id]/url`, `[id] DELETE`) return expected unauthenticated `401` guards.
+  - Invite/member admin APIs (`/api/invites/[token]/join`, `/api/spaces/[id]/members/[userId]`) return expected unauthenticated `401` guards.
+  - R2 signed URL smoke flow passed end-to-end (`PUT` upload, `GET` readback, object delete).
 
-2. **Retry UX hard-cap parity**
+### Phase 4 — next actions (immediate)
+1. **Retry UX hard-cap parity**
    - Enforce strict `max 3 before manual` retry lock behavior in client state transitions.
    - Keep failed uploads non-blocking for promise save/update flows.
 
-3. **Attachments QA checklist**
+2. **Attachments QA checklist**
    - Validate upload/open/delete for image/audio/pdf/video across real devices.
    - Validate invalid type/oversize rejection (client + server).
    - Validate 5-attachment cap and member-based access control in multi-user scenarios.
 
 ### Pending before continuing Phase 2
-- Create real `.env.local` from `.env.local.example` with actual keys
-- Run migration against Supabase project (apply `supabase/migrations/0001_init.sql`)
-- Apply note-history migration `supabase/migrations/0002_note_history.sql`
-- Apply latest invite-target migration `supabase/migrations/0003_invite_intended_for.sql`
 - Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
 
 ### Phase 2 — Implementation instructions (next)

@@ -35,7 +35,7 @@ Implemented so far:
 
 In progress next:
 
-- Infra and rollout tasks (apply latest migrations, configure production R2)
+- Phase 2 suggestion lifecycle completion (member suggestion persistence + admin moderation parity)
 - Attachment QA hardening (real-device validation, retry edge cases)
 - Offline sync and conflict UX (Phase 5)
 
@@ -61,6 +61,13 @@ Use this template for each new session update:
 - Shipped Phase 4 attachments foundation: R2 env wiring, signed upload/download/delete APIs, attachment grid/upload flow on promise detail, and best-effort R2 cleanup on promise delete.
 - Added promise detail `⋯` actions for permitted users (1:1 creator, group admin): edit bottom-sheet flow + destructive delete confirmation flow.
 - Replaced `datetime-local` due input with PKT-safe date + fixed-time picker and timezone-aware due date rendering.
+
+### 2026-04-26
+
+- **What shipped:** Completed infra R2 + migrations execution milestone: validated local env readiness, confirmed R2 bucket accessibility, verified migration parity (`0001`/`0002`/`0003`) and confirmed remote DB up to date.
+- **Behavior impact:** Attachment and invite/member admin APIs are reachable with expected auth guards; R2 signed URL flow (upload/read/delete) works with current runtime credentials.
+- **Infra/data changes:** No new schema added in this slice; verified existing migration artifacts are present in target Supabase schema including `invite_links.intended_for_user_id`.
+- **Verification:** `npx supabase migration list`, `npx supabase db push`, schema presence checks via service-role client, endpoint auth-smoke checks, and R2 signed URL smoke script.
 
 ## Tech stack
 
