@@ -89,7 +89,7 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
 
   const { data: promises } = await supabase
     .from("promises")
-    .select("id, title, created_by, state, due_at, is_suggestion")
+    .select("id, title, created_by, state, due_at, is_suggestion, updated_at")
     .eq("space_id", id)
     .order("created_at", { ascending: false })
     .limit(20);

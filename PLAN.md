@@ -336,6 +336,38 @@ These rules must be followed for every new page built in any phase. They are non
 - **Verification:**
   - `npm run lint` passes for touched files (existing generated-asset warnings unchanged).
 
+### Phase 5 conflict drafts update (this chat)
+- **Conflict detection added during replay:**
+  - Added `GET /api/offline/promises/[id]/version` to fetch promise `updated_at` for authorized members.
+  - Replay now compares queued `baseUpdatedAt` with latest server version for `fulfill_promise` and `add_note`.
+  - On stale data, replay raises a conflict event instead of blindly applying mutation.
+- **Draft retention with TTL implemented (IndexedDB):**
+  - Added `drafts` store to offline DB with 7-day expiry support.
+  - Added draft APIs in `lib/offline/queue.ts` for save/list/delete/purge expired drafts.
+- **Conflict UX actions shipped:**
+  - Sync layer now shows conflict toast with:
+    - `View latest`
+    - `See my draft`
+    - `Dismiss`
+  - `See my draft` opens a draft viewer modal with preserved local content.
+  - Dismiss removes the draft entry from IndexedDB.
+- **Payload/version wiring completed:**
+  - Offline queue payloads now include `baseUpdatedAt` where available:
+    - fulfill actions from space tabs
+    - note create from promise detail
+- **Verification:**
+  - `npm run lint` passes for touched files.
+
+### Phase 5 offline hydration fix update (this chat)
+- **OfflineSyncProvider SSR/hydration guard hardened:**
+  - Added explicit client-only guards before IndexedDB access paths (`mounted` + `window/indexedDB` checks).
+  - Protected initialization/replay flows so IDB calls do not execute during SSR.
+  - Sync UI elements are now rendered only in browser-safe conditions.
+- **Why this was needed:**
+  - Prevented mount-time render hangs and IndexedDB access errors during hydration (`NotFoundError` / blocked render symptoms).
+- **Verification:**
+  - `npm run lint` passes after the provider guard adjustments (existing generated-asset warnings unchanged).
+
 ### Phase 4 — next actions (immediate)
 1. **Attachments QA final manual pass**
    - Validate upload/open/delete for image/audio/pdf/video across real devices.
@@ -687,6 +719,20 @@ These decisions from the plan are correctly reflected in the wireframes — do n
 
 ---
 
+## IndexedDB Migration Rules (permanent)
+
+These rules apply to `lib/offline/queue.ts` and any future IndexedDB modules.
+
+- **Always bump `DB_VERSION` when schema changes** (store/index/keyPath/autoIncrement changes).
+- **Schema-change checklist (required in same PR):**
+  1. Increment `DB_VERSION`.
+  2. Add/adjust `upgrade(db)` migration logic.
+  3. Verify upgrade path from an older local DB (not only fresh install).
+- **No bump needed** for logic-only changes that do not alter object stores or indexes.
+- **Do not ship new store/index usage** unless the corresponding version bump + migration is already present (prevents `NotFoundError` on existing clients).
+
+---
+
 ## Supabase Free Tier Notes
 
 - Free tier is sufficient for Wafa's personal use case permanently
@@ -767,6 +813,7 @@ Add to `vercel.json`:
 - Service worker background sync
 - Conflict resolution with server timestamp
 - Sync status indicator in UI (syncing / synced / conflict toast)
+- Status: **in progress** (queue foundation + reconnect replay + sync status pill + conflict draft actions shipped; final regression/manual QA pending)
 
 ## Invite join flow (auth edge case)
 If a user opens an invite link while not authenticated:

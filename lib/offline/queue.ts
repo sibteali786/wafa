@@ -36,12 +36,29 @@ interface WafaOfflineDB extends DBSchema {
       value: number;
     };
   };
+  drafts: {
+    key: string;
+    value: {
+      id: string;
+      actionType: OfflineActionType;
+      latestPath: string;
+      draftText: string;
+      reason: string;
+      createdAt: string;
+      expiresAt: string;
+    };
+    indexes: {
+      byCreatedAt: string;
+      byExpiresAt: string;
+    };
+  };
 }
 
 const DB_NAME = "wafa-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const QUEUE_STORE = "queue";
 const META_STORE = "meta";
+const DRAFTS_STORE = "drafts";
 const ORDER_KEY = "queue_order_counter";
 const STATUS_QUEUED: QueueStatus = "queued";
 const STATUS_PROCESSING: QueueStatus = "processing";
@@ -67,6 +84,12 @@ function getDB() {
 
         if (!db.objectStoreNames.contains(META_STORE)) {
           db.createObjectStore(META_STORE, { keyPath: "key" });
+        }
+
+        if (!db.objectStoreNames.contains(DRAFTS_STORE)) {
+          const draftsStore = db.createObjectStore(DRAFTS_STORE, { keyPath: "id" });
+          draftsStore.createIndex("byCreatedAt", "createdAt");
+          draftsStore.createIndex("byExpiresAt", "expiresAt");
         }
       },
     });
@@ -176,9 +199,70 @@ export async function removeAction(id: string) {
 
 export async function clearOfflineQueue() {
   const db = await getDB();
-  const tx = db.transaction([QUEUE_STORE, META_STORE], "readwrite");
+  const tx = db.transaction([QUEUE_STORE, META_STORE, DRAFTS_STORE], "readwrite");
   await tx.objectStore(QUEUE_STORE).clear();
   await tx.objectStore(META_STORE).put({ key: ORDER_KEY, value: 0 });
+  await tx.objectStore(DRAFTS_STORE).clear();
+  await tx.done;
+}
+
+export type OfflineConflictDraft = {
+  id: string;
+  actionType: OfflineActionType;
+  latestPath: string;
+  draftText: string;
+  reason: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+export async function saveConflictDraft(input: {
+  actionType: OfflineActionType;
+  latestPath: string;
+  draftText: string;
+  reason: string;
+  keepDays?: number;
+}) {
+  const db = await getDB();
+  const createdAt = new Date();
+  const keepDays = input.keepDays ?? 7;
+  const expiresAt = new Date(createdAt.getTime() + keepDays * 24 * 60 * 60 * 1000).toISOString();
+  const draft: OfflineConflictDraft = {
+    id: crypto.randomUUID(),
+    actionType: input.actionType,
+    latestPath: input.latestPath,
+    draftText: input.draftText,
+    reason: input.reason,
+    createdAt: createdAt.toISOString(),
+    expiresAt,
+  };
+  await db.put(DRAFTS_STORE, draft);
+  return draft;
+}
+
+export async function listConflictDrafts() {
+  const db = await getDB();
+  const tx = db.transaction(DRAFTS_STORE, "readonly");
+  const drafts = await tx.store.getAll();
+  await tx.done;
+  return drafts.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+}
+
+export async function deleteConflictDraft(id: string) {
+  const db = await getDB();
+  await db.delete(DRAFTS_STORE, id);
+}
+
+export async function purgeExpiredConflictDrafts() {
+  const db = await getDB();
+  const tx = db.transaction(DRAFTS_STORE, "readwrite");
+  const allDrafts = await tx.store.getAll();
+  const now = new Date().toISOString();
+  for (const draft of allDrafts) {
+    if (draft.expiresAt <= now) {
+      await tx.store.delete(draft.id);
+    }
+  }
   await tx.done;
 }
 

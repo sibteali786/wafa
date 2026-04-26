@@ -12,6 +12,7 @@ type PromiseItem = {
   state: string;
   due_at: string | null;
   is_suggestion: boolean;
+  updated_at: string | null;
 };
 
 type SpaceDetailTabsProps = {
@@ -44,7 +45,15 @@ function PromiseRows({
             className={rowClassName}
             title={promise.title}
             sub={sub}
-            trailing={showFulfillAction ? <PromiseRowActions promiseId={promise.id} mode="fulfill" /> : undefined}
+            trailing={
+              showFulfillAction ? (
+                <PromiseRowActions
+                  promiseId={promise.id}
+                  mode="fulfill"
+                  baseUpdatedAt={promise.updated_at}
+                />
+              ) : undefined
+            }
           />
         </Link>
       ))}

@@ -24,7 +24,7 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
 
   const { data: promise } = await supabase
     .from("promises")
-    .select("id, title, description, due_at, state, space_id, snoozed_until, created_by, assigned_to")
+    .select("id, title, description, due_at, state, space_id, snoozed_until, created_by, assigned_to, updated_at")
     .eq("id", id)
     .single();
 
@@ -125,6 +125,7 @@ export default async function PromiseDetailPage({ params }: PromiseDetailPagePro
 
           <PromiseNotesPanel
             promiseId={promise.id}
+            promiseUpdatedAt={promise.updated_at}
             initialNotes={
               notes?.map((note) => ({
                 id: note.id,

@@ -6,14 +6,15 @@ import { useOfflineSync } from "@/components/offline/sync-status-provider";
 type PromiseRowActionsProps = {
   promiseId: string;
   mode: "fulfill" | "approve-reject";
+  baseUpdatedAt?: string | null;
 };
 
-export function PromiseRowActions({ promiseId, mode }: PromiseRowActionsProps) {
+export function PromiseRowActions({ promiseId, mode, baseUpdatedAt }: PromiseRowActionsProps) {
   const { queueAction } = useOfflineSync();
 
   async function action(name: "fulfill" | "approve" | "reject") {
     if (name === "fulfill" && typeof navigator !== "undefined" && !navigator.onLine) {
-      await queueAction("fulfill_promise", { promiseId });
+      await queueAction("fulfill_promise", { promiseId, baseUpdatedAt: baseUpdatedAt ?? null });
       window.location.reload();
       return;
     }
