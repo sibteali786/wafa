@@ -309,11 +309,24 @@ These rules must be followed for every new page built in any phase. They are non
   - `npm run lint` passes for touched files.
   - `npx tsc --noEmit` confirms this file-level type issue is fixed (repo still has separate pre-existing type errors in other files).
 
+### Phase 4 attachments QA update (this chat)
+- **Supported file-class smoke checks passed (R2):**
+  - End-to-end upload/open/delete validated for `image/jpeg`, `audio/mpeg`, `application/pdf`, and `video/mp4` using signed URLs.
+- **Access-control smoke checks passed (multi-user RLS):**
+  - Group member can insert/read attachment metadata on an approved group promise.
+  - Outsider cannot read attachment metadata and cannot insert attachment rows for the promise.
+  - QA fixtures (users/space/promise/attachment) were created and cleaned up in the same run.
+- **Validation-rule parity confirmed (config-level):**
+  - Allowed MIME list and size thresholds in `lib/attachments.ts` match product constraints.
+- **Manual QA still required (device/browser matrix):**
+  - Real-device verification for image/audio/pdf/video preview UX on mobile browsers.
+  - Explicit oversize rejection UX and 5-attachment cap UX via authenticated UI path.
+
 ### Phase 4 — next actions (immediate)
-1. **Attachments QA checklist**
+1. **Attachments QA final manual pass**
    - Validate upload/open/delete for image/audio/pdf/video across real devices.
-   - Validate invalid type/oversize rejection (client + server).
-   - Validate 5-attachment cap and member-based access control in multi-user scenarios.
+   - Validate invalid type/oversize rejection UX (client + server responses) in authenticated flow.
+   - Validate 5-attachment cap UX behavior in authenticated flow.
 
 ### Pending before continuing Phase 2
 - Align older Phase 1 pages to the exact layout utility contract where still using legacy shell helpers
