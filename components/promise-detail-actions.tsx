@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { BottomSheet } from "@/components/wafa/bottom-sheet";
 import { cn } from "@/lib/utils";
+import { useOfflineSync } from "./offline/sync-status-provider";
+import { WafaToast } from "./wafa/wafa-toast";
 
 type PromiseDetailActionsProps = {
   promiseId: string;
@@ -17,13 +19,26 @@ const snoozeOptions = [
   { id: "3d", label: "3 days" },
 ] as const;
 
-export function PromiseDetailActions({ promiseId, state }: PromiseDetailActionsProps) {
+export function PromiseDetailActions({
+  promiseId,
+  state,
+}: PromiseDetailActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-
+  const { queueAction } = useOfflineSync();
+  const [queued, setQueued] = useState(false);
   function runAction(action: string, extra?: Record<string, string>) {
     setError(null);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (action === "fulfill") {
+        void queueAction("fulfill_promise", { promiseId, baseUpdatedAt: null });
+        setQueued(true);
+        return;
+      }
+      setError("You're offline. This action can't be performed right now.");
+      return;
+    }
     startTransition(async () => {
       const response = await fetch(`/api/promises/${promiseId}`, {
         method: "PATCH",
@@ -83,8 +98,15 @@ export function PromiseDetailActions({ promiseId, state }: PromiseDetailActionsP
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {queued ? (
+        <WafaToast>Saved offline — will sync when you&apos;re back online</WafaToast>
+      ) : null}
 
-      <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Snooze promise">
+      <BottomSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        title="Snooze promise"
+      >
         <div className="space-y-2">
           {snoozeOptions.map((option) => (
             <button
@@ -97,7 +119,7 @@ export function PromiseDetailActions({ promiseId, state }: PromiseDetailActionsP
               }}
               className={cn(
                 buttonVariants({ variant: "wireGhost", size: "cta" }),
-                "w-full justify-start"
+                "w-full justify-start",
               )}
             >
               {option.label}
@@ -108,4 +130,3 @@ export function PromiseDetailActions({ promiseId, state }: PromiseDetailActionsP
     </>
   );
 }
-
