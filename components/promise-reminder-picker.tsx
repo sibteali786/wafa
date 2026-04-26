@@ -55,6 +55,11 @@ export function PromiseReminderPicker({ promiseId, initialReminder }: PromiseRem
     const [hour, minute] = time.split(":").map((value) => Number(value));
 
     startTransition(async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("You're offline. Reminder changes can't be saved right now.");
+        setOpen(false);
+        return;
+      }
       const payload = {
         cadence,
         hour,
@@ -100,6 +105,11 @@ export function PromiseReminderPicker({ promiseId, initialReminder }: PromiseRem
     setError(null);
     setSuccess(null);
     startTransition(async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("You're offline. Can't remove reminder right now.");
+        setOpen(false);
+        return;
+      }
       const response = await fetch(`/api/promises/${promiseId}/reminders/${reminder.id}`, {
         method: "DELETE",
       });

@@ -56,6 +56,10 @@ export function PromiseDetailMoreActions({
   function deletePromise() {
     setError(null);
     startTransition(async () => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("You're offline. Can't delete while offline.");
+        return;
+      }
       const response = await fetch(`/api/promises/${promiseId}`, {
         method: "DELETE",
       });

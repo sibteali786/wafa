@@ -54,6 +54,11 @@ export function PromiseCreateForm({
           setError("Missing promise id.");
           return;
         }
+
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          setError("You're offline. Edits can't be saved right now.");
+          return;
+        }
         const response = await fetch(`/api/promises/${promiseId}`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
