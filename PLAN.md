@@ -284,6 +284,18 @@ These rules must be followed for every new page built in any phase. They are non
   - Invite/member admin APIs (`/api/invites/[token]/join`, `/api/spaces/[id]/members/[userId]`) return expected unauthenticated `401` guards.
   - R2 signed URL smoke flow passed end-to-end (`PUT` upload, `GET` readback, object delete).
 
+### Phase 2 suggestion lifecycle update (this chat)
+- **Moderation authorization hardened server-side:**
+  - `PATCH /api/promises/[id]` now enforces that only **group admins** can run `approve` / `reject`.
+  - Approve/reject now only applies to pending suggestions (`is_suggestion = true` and `approved_at is null`), preventing invalid transitions.
+- **Group member suggestion UX finalized:**
+  - Creating a suggestion now returns members back to `/spaces/[id]?suggested=1` instead of opening detail immediately.
+  - `/spaces/[id]` shows a non-admin confirmation message: suggestion sent and awaiting admin review.
+- **Home commitment counters aligned with product behavior:**
+  - `/home` stats now exclude `is_suggestion = true` rows from open/overdue counts so unapproved suggestions do not appear as active commitments.
+- **Verification:**
+  - `npm run lint` passes for touched files (existing warnings in generated service-worker assets remain unchanged).
+
 ### Phase 4 — next actions (immediate)
 1. **Retry UX hard-cap parity**
    - Enforce strict `max 3 before manual` retry lock behavior in client state transitions.
@@ -696,7 +708,7 @@ Add to `vercel.json`:
 - Join via link flow + [auth edge case](#invite-join-flow-auth-edge-case)
 - Member list with roles
 - Admin: remove member + invalidate link
-- Status: **in progress** (core create/list/invite/join + member admin/remove shipped; suggestion action persistence still pending)
+- Status: **completed for current scoped requirements** (create/list/invite/join + member admin/remove + suggestion persistence/moderation lifecycle shipped)
 
 ### Phase 3 — Promises & Reminders
 - Add / edit / delete promises

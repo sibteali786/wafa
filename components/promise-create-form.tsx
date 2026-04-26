@@ -81,12 +81,17 @@ export function PromiseCreateForm({
           assignedTo: assignedTo || null,
         }),
       });
-      const payload = (await response.json()) as { id?: string; error?: string };
+      const payload = (await response.json()) as { id?: string; isSuggestion?: boolean; error?: string };
       if (!response.ok || !payload.id) {
         setError(payload.error ?? "Could not create promise.");
         return;
       }
       onSuccess?.();
+      if (payload.isSuggestion) {
+        router.push(`/spaces/${spaceId}?suggested=1`);
+        router.refresh();
+        return;
+      }
       router.push(`/promises/${payload.id}`);
       router.refresh();
     });

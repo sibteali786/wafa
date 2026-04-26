@@ -53,7 +53,7 @@ export default async function HomePage() {
     spaceIds.length > 0
       ? await supabase
           .from("promises")
-          .select("space_id, state, due_at")
+          .select("space_id, state, due_at, is_suggestion")
           .in("space_id", spaceIds)
       : { data: [] };
 
@@ -65,6 +65,7 @@ export default async function HomePage() {
   for (const promise of promiseRows ?? []) {
     const stats = statsBySpace.get(promise.space_id as string);
     if (!stats) continue;
+    if (promise.is_suggestion) continue;
     const isFulfilled = promise.state === "fulfilled";
     if (!isFulfilled) {
       stats.open += 1;

@@ -16,7 +16,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type SpacePageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ first?: string; tone?: string; inviteFor?: string }>;
+  searchParams: Promise<{ first?: string; tone?: string; inviteFor?: string; suggested?: string }>;
 };
 
 export default async function SpaceDetailPage({ params, searchParams }: SpacePageProps) {
@@ -103,6 +103,7 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
   const isAdmin = membership.role === "admin";
   const firstVisit = qs.first === "1";
   const inviteFor = qs.inviteFor ? decodeURIComponent(qs.inviteFor) : "them";
+  const justSuggested = qs.suggested === "1";
 
   return (
     <FullPage>
@@ -137,6 +138,12 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
             >
               Invite your first member
             </Link>
+          </div>
+        ) : null}
+
+        {isGroup && !isAdmin && justSuggested ? (
+          <div className="rounded-xl border border-primary/20 bg-primary-soft px-3 py-2 text-[12px] text-primary-ink">
+            Suggestion sent. An admin will review it before it appears in active promises.
           </div>
         ) : null}
 

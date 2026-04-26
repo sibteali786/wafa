@@ -60,10 +60,53 @@ export async function PATCH(
   }
 
   const payload = (await request.json()) as UpdatePromisePayload;
+  const admin = createAdminClient();
 
   if (payload.action) {
+    const { data: promiseRow, error: promiseError } = await admin
+      .from("promises")
+      .select("id, space_id, is_suggestion, approved_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (promiseError || !promiseRow) {
+      return NextResponse.json({ error: "Promise not found" }, { status: 404 });
+    }
+
+    const { data: spaceRow, error: spaceError } = await admin
+      .from("spaces")
+      .select("space_type")
+      .eq("id", promiseRow.space_id)
+      .maybeSingle();
+    if (spaceError || !spaceRow) {
+      return NextResponse.json({ error: "Space not found" }, { status: 404 });
+    }
+
+    const { data: membership, error: membershipError } = await supabase
+      .from("space_members")
+      .select("role")
+      .eq("space_id", promiseRow.space_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membershipError || !membership) {
+      return NextResponse.json({ error: "Not a member of this space" }, { status: 403 });
+    }
+
     if (payload.action === "reject") {
-      const { error } = await supabase.from("promises").delete().eq("id", id);
+      if (
+        spaceRow.space_type !== "group" ||
+        membership.role !== "admin" ||
+        !promiseRow.is_suggestion ||
+        promiseRow.approved_at
+      ) {
+        return NextResponse.json({ error: "Only group admins can reject pending suggestions" }, { status: 403 });
+      }
+
+      const { error } = await supabase
+        .from("promises")
+        .delete()
+        .eq("id", id)
+        .eq("is_suggestion", true)
+        .is("approved_at", null);
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ ok: true });
     }
@@ -121,6 +164,15 @@ export async function PATCH(
     }
 
     if (payload.action === "approve") {
+      if (
+        spaceRow.space_type !== "group" ||
+        membership.role !== "admin" ||
+        !promiseRow.is_suggestion ||
+        promiseRow.approved_at
+      ) {
+        return NextResponse.json({ error: "Only group admins can approve pending suggestions" }, { status: 403 });
+      }
+
       const { error } = await supabase
         .from("promises")
         .update({
@@ -128,7 +180,9 @@ export async function PATCH(
           approved_at: new Date().toISOString(),
           approved_by: user.id,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("is_suggestion", true)
+        .is("approved_at", null);
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ ok: true });
     }
