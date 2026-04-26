@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
+import { useOfflineSync } from "@/components/offline/sync-status-provider";
 
 type PromiseRowActionsProps = {
   promiseId: string;
@@ -8,7 +9,15 @@ type PromiseRowActionsProps = {
 };
 
 export function PromiseRowActions({ promiseId, mode }: PromiseRowActionsProps) {
+  const { queueAction } = useOfflineSync();
+
   async function action(name: "fulfill" | "approve" | "reject") {
+    if (name === "fulfill" && typeof navigator !== "undefined" && !navigator.onLine) {
+      await queueAction("fulfill_promise", { promiseId });
+      window.location.reload();
+      return;
+    }
+
     await fetch(`/api/promises/${promiseId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },

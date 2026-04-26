@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useOfflineSync } from "@/components/offline/sync-status-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/wafa/date-time-picker";
@@ -35,8 +36,10 @@ export function PromiseCreateForm({
   onSuccess,
 }: PromiseCreateFormProps) {
   const router = useRouter();
+  const { queueAction } = useOfflineSync();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [dueAt, setDueAt] = useState<string | null>(initialValues?.dueAt ?? null);
@@ -44,6 +47,7 @@ export function PromiseCreateForm({
 
   function submit() {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       if (mode === "edit") {
         if (!promiseId) {
@@ -67,6 +71,20 @@ export function PromiseCreateForm({
         }
         onSuccess?.();
         router.refresh();
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await queueAction("create_promise", {
+          spaceId,
+          title,
+          description,
+          dueAt,
+          assignedTo: assignedTo || null,
+        });
+        setSuccess("Saved offline. It will sync when you're back online.");
+        onSuccess?.();
+        router.push(`/spaces/${spaceId}?queued=1`);
         return;
       }
 
@@ -139,6 +157,7 @@ export function PromiseCreateForm({
         Reminder is added after creation from the promise detail page.
       </p>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {success ? <p className="text-sm text-primary">{success}</p> : null}
 
       <button
         type="button"

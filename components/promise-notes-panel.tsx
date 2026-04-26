@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useOfflineSync } from "@/components/offline/sync-status-provider";
 import { WafaToast } from "@/components/wafa/wafa-toast";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ type PromiseNotesPanelProps = {
 };
 
 export function PromiseNotesPanel({ promiseId, initialNotes }: PromiseNotesPanelProps) {
+  const { queueAction } = useOfflineSync();
   const [notes, setNotes] = useState<NoteItem[]>(
     [...initialNotes].sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1))
   );
@@ -54,6 +56,16 @@ export function PromiseNotesPanel({ promiseId, initialNotes }: PromiseNotesPanel
     if (!body) return;
     setError(null);
     setSuccess(null);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      void (async () => {
+        await queueAction("add_note", { promiseId, body });
+        setNewBody("");
+        setSuccess("Note queued. It will sync when you're back online.");
+      })();
+      return;
+    }
+
     const tempId = `tmp-${Date.now()}`;
     const optimistic: NoteItem = {
       id: tempId,

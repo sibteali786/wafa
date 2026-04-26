@@ -322,6 +322,20 @@ These rules must be followed for every new page built in any phase. They are non
   - Real-device verification for image/audio/pdf/video preview UX on mobile browsers.
   - Explicit oversize rejection UX and 5-attachment cap UX via authenticated UI path.
 
+### Phase 5 sync status update (this chat)
+- **Reconnect replay engine shipped (client-side):**
+  - Added IndexedDB-backed replay executor for queued actions in `lib/offline/replay.ts`.
+  - Added global `OfflineSyncProvider` (`components/offline/sync-status-provider.tsx`) wired in `app/layout.tsx`.
+  - Provider listens to online/offline events, replays queued actions in deterministic order, and marks failures for retry.
+- **Sync status UI states shipped:**
+  - Added global top-right sync pill with states: `Offline`, `Queued`, `Syncing`, `Sync paused` (error), and hidden-on-idle `Synced`.
+- **Action integration for queue + replay:**
+  - `components/promise-create-form.tsx` queues `create_promise` when offline.
+  - `components/promise-row-actions.tsx` queues `fulfill_promise` when offline.
+  - `components/promise-notes-panel.tsx` queues `add_note` when offline.
+- **Verification:**
+  - `npm run lint` passes for touched files (existing generated-asset warnings unchanged).
+
 ### Phase 4 — next actions (immediate)
 1. **Attachments QA final manual pass**
    - Validate upload/open/delete for image/audio/pdf/video across real devices.
