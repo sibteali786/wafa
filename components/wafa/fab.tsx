@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +16,10 @@ export function Fab({ className, type = "button", href, ...props }: FabProps) {
 
   if (href) {
     return (
-      <Link href={href} className={classes} aria-label={props["aria-label"] ?? "Create"}>
+      <a href={href} className={classes} aria-label={props["aria-label"] ?? "Create"}>
         <Plus className="size-[22px] stroke-[2]" aria-hidden />
         <span className="sr-only">Create</span>
-      </Link>
+      </a>
     );
   }
 

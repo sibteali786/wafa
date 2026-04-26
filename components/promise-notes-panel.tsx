@@ -25,7 +25,7 @@ export function PromiseNotesPanel({
   initialNotes,
   promiseUpdatedAt,
 }: PromiseNotesPanelProps) {
-  const { queueAction } = useOfflineSync();
+  const { queueAction, isOnline } = useOfflineSync();
   const [notes, setNotes] = useState<NoteItem[]>(
     [...initialNotes].sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1)),
   );
@@ -63,7 +63,7 @@ export function PromiseNotesPanel({
     setError(null);
     setSuccess(null);
 
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    if (!isOnline) {
       void (async () => {
         await queueAction("add_note", {
           promiseId,

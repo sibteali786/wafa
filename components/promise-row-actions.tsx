@@ -10,10 +10,10 @@ type PromiseRowActionsProps = {
 };
 
 export function PromiseRowActions({ promiseId, mode, baseUpdatedAt }: PromiseRowActionsProps) {
-  const { queueAction } = useOfflineSync();
+  const { queueAction, isOnline } = useOfflineSync();
 
   async function action(name: "fulfill" | "approve" | "reject") {
-    if (name === "fulfill" && typeof navigator !== "undefined" && !navigator.onLine) {
+    if (name === "fulfill" && !isOnline) {
       await queueAction("fulfill_promise", { promiseId, baseUpdatedAt: baseUpdatedAt ?? null });
       window.location.reload();
       return;

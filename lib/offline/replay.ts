@@ -61,6 +61,7 @@ export async function executeOfflineAction(item: OfflineQueueItem) {
         });
       }
     }
+    
 
     const response = await fetch(`/api/promises/${payload.promiseId}`, {
       method: "PATCH",
@@ -70,6 +71,24 @@ export async function executeOfflineAction(item: OfflineQueueItem) {
     if (!response.ok) {
       const responsePayload = await readJsonSafely(response);
       throw new Error(responsePayload.error ?? "Could not sync fulfill action.");
+    }
+    return;
+  }
+
+  if (item.actionType === "reopen_promise" || item.actionType === "unsnooze_promise") {
+    const payload = item.payload as { promiseId?: string };
+    if (!payload.promiseId) {
+      throw new Error(`Queued ${item.actionType} action is missing promiseId.`);
+    }
+    const action = item.actionType === "reopen_promise" ? "reopen" : "unsnooze";
+    const response = await fetch(`/api/promises/${payload.promiseId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (!response.ok) {
+      const responsePayload = await readJsonSafely(response);
+      throw new Error(responsePayload.error ?? `Could not sync ${action} action.`);
     }
     return;
   }

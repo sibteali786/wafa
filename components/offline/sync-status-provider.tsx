@@ -23,6 +23,7 @@ type SyncStatus = "offline" | "queued" | "syncing" | "synced" | "error";
 type OfflineSyncContextValue = {
   status: SyncStatus;
   queuedCount: number;
+  isOnline: boolean;
   queueAction: (actionType: OfflineActionType, payload: OfflineActionPayload) => Promise<void>;
   flushNow: () => Promise<void>;
 };
@@ -124,6 +125,9 @@ function DraftViewer({
 }
 
 export function OfflineSyncProvider({ children }: { children: React.ReactNode }) {
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
   const [mounted] = useState(() => typeof window !== "undefined");
   const [status, setStatus] = useState<SyncStatus>("synced");
   const [queuedCount, setQueuedCount] = useState(0);
@@ -236,6 +240,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     void purgeExpiredConflictDrafts().catch(() => {});
 
     function onOnline() {
+      setIsOnline(true);
       if (typeof window === "undefined" || typeof indexedDB === "undefined") return;
       void refreshQueuedCount().then((count) => {
         setStatus(count > 0 ? "queued" : "synced");
@@ -246,6 +251,7 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     }
 
     function onOffline() {
+      setIsOnline(false);
       setStatus("offline");
     }
 
@@ -289,11 +295,12 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
   const contextValue = useMemo(
     () => ({
       status,
+      isOnline,
       queuedCount,
       queueAction,
       flushNow,
     }),
-    [flushNow, queueAction, queuedCount, status]
+    [flushNow, queueAction, queuedCount, status, isOnline]
   );
 
   return (

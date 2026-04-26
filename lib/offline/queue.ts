@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
-export type OfflineActionType = "create_promise" | "fulfill_promise" | "add_note";
+export type OfflineActionType = "create_promise" | "fulfill_promise" | "add_note" | "reopen_promise" | "unsnooze_promise";
 
 export type OfflineActionPayload = Record<string, unknown>;
 

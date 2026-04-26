@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOfflineSync } from "@/components/offline/sync-status-provider";
 import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/wafa/date-time-picker";
 import { cn } from "@/lib/utils";
 
@@ -36,99 +35,101 @@ export function PromiseCreateForm({
   onSuccess,
 }: PromiseCreateFormProps) {
   const router = useRouter();
-  const { queueAction } = useOfflineSync();
-  const [pending, startTransition] = useTransition();
+  const { queueAction, isOnline } = useOfflineSync();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [title, setTitle] = useState(initialValues?.title ?? "");
-  const [description, setDescription] = useState(initialValues?.description ?? "");
-  const [dueAt, setDueAt] = useState<string | null>(initialValues?.dueAt ?? null);
+  const [description, setDescription] = useState(
+    initialValues?.description ?? "",
+  );
+  const [dueAt, setDueAt] = useState<string | null>(
+    initialValues?.dueAt ?? null,
+  );
   const [assignedTo, setAssignedTo] = useState(initialValues?.assignedTo ?? "");
 
   function submit() {
     setError(null);
     setSuccess(null);
-    startTransition(async () => {
-      if (mode === "edit") {
-        if (!promiseId) {
-          setError("Missing promise id.");
+    setPending(true);
+    void (async () => {
+      try {
+        if (mode === "edit") {
+          if (!promiseId) {
+            setError("Missing promise id.");
+            return;
+          }
+          if (!isOnline) {
+            setError("You're offline. Edits can't be saved right now.");
+            return;
+          }
+          const response = await fetch(`/api/promises/${promiseId}`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title, description, dueAt, assignedTo: assignedTo || null }),
+          });
+          const payload = (await response.json()) as { error?: string };
+          if (!response.ok) {
+            setError(payload.error ?? "Could not update promise.");
+            return;
+          }
+          onSuccess?.();
+          router.refresh();
           return;
         }
-
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
-          setError("You're offline. Edits can't be saved right now.");
+  
+        let response: Response;
+        try {
+          response = await fetch("/api/promises", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ spaceId, title, description, dueAt, assignedTo: assignedTo || null }),
+          });
+        } catch {
+          await queueAction("create_promise", { spaceId, title, description, dueAt, assignedTo: assignedTo || null });
+          setSuccess("Saved offline. It will sync when you're back online.");
+          onSuccess?.();
+          window.location.href = `/spaces/${spaceId}?queued=1`;
           return;
         }
-        const response = await fetch(`/api/promises/${promiseId}`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            title,
-            description,
-            dueAt,
-            assignedTo: assignedTo || null,
-          }),
-        });
-        const payload = (await response.json()) as { error?: string };
-        if (!response.ok) {
-          setError(payload.error ?? "Could not update promise.");
+  
+        const payload = (await response.json()) as { id?: string; isSuggestion?: boolean; error?: string };
+        if (!response.ok || !payload.id) {
+          setError(payload.error ?? "Could not create promise.");
           return;
         }
         onSuccess?.();
+        if (payload.isSuggestion) {
+          router.push(`/spaces/${spaceId}?suggested=1`);
+          router.refresh();
+          return;
+        }
+        router.push(`/promises/${payload.id}`);
         router.refresh();
-        return;
+      } finally {
+        setPending(false);
       }
-
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        await queueAction("create_promise", {
-          spaceId,
-          title,
-          description,
-          dueAt,
-          assignedTo: assignedTo || null,
-        });
-        setSuccess("Saved offline. It will sync when you're back online.");
-        onSuccess?.();
-        router.push(`/spaces/${spaceId}?queued=1`);
-        return;
-      }
-
-      const response = await fetch("/api/promises", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          spaceId,
-          title,
-          description,
-          dueAt,
-          assignedTo: assignedTo || null,
-        }),
-      });
-      const payload = (await response.json()) as { id?: string; isSuggestion?: boolean; error?: string };
-      if (!response.ok || !payload.id) {
-        setError(payload.error ?? "Could not create promise.");
-        return;
-      }
-      onSuccess?.();
-      if (payload.isSuggestion) {
-        router.push(`/spaces/${spaceId}?suggested=1`);
-        router.refresh();
-        return;
-      }
-      router.push(`/promises/${payload.id}`);
-      router.refresh();
-    });
+    })();
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Title</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Call Areeba's parents" />
+        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Title
+        </label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Call Areeba's parents"
+          className="h-10 w-full rounded-lg border border-line-strong bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Description</label>
+        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Description
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -142,7 +143,9 @@ export function PromiseCreateForm({
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Assigned to</label>
+          <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+            Assigned to
+          </label>
           <select
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
@@ -168,11 +171,19 @@ export function PromiseCreateForm({
         type="button"
         onClick={submit}
         disabled={pending || title.trim().length === 0}
-        className={cn(buttonVariants({ variant: "cta", size: "cta" }), "w-full")}
+        className={cn(
+          buttonVariants({ variant: "cta", size: "cta" }),
+          "w-full",
+        )}
       >
-        {pending ? (mode === "edit" ? "Saving…" : "Creating…") : mode === "edit" ? "Save changes" : "Create promise"}
+        {pending
+          ? mode === "edit"
+            ? "Saving…"
+            : "Creating…"
+          : mode === "edit"
+            ? "Save changes"
+            : "Create promise"}
       </button>
     </div>
   );
 }
-

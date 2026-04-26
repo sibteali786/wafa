@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useOfflineSync } from "@/components/offline/sync-status-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { BottomSheet } from "@/components/wafa/bottom-sheet";
 import { WafaToast } from "@/components/wafa/wafa-toast";
@@ -32,6 +33,7 @@ function formatReminder(reminder: Reminder | null) {
 }
 
 export function PromiseReminderPicker({ promiseId, initialReminder }: PromiseReminderPickerProps) {
+  const { isOnline } = useOfflineSync();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function PromiseReminderPicker({ promiseId, initialReminder }: PromiseRem
     const [hour, minute] = time.split(":").map((value) => Number(value));
 
     startTransition(async () => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (!isOnline) {
         setError("You're offline. Reminder changes can't be saved right now.");
         setOpen(false);
         return;
@@ -105,7 +107,7 @@ export function PromiseReminderPicker({ promiseId, initialReminder }: PromiseRem
     setError(null);
     setSuccess(null);
     startTransition(async () => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (!isOnline) {
         setError("You're offline. Can't remove reminder right now.");
         setOpen(false);
         return;

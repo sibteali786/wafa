@@ -3,6 +3,7 @@
 import { MoreHorizontal } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useOfflineSync } from "@/components/offline/sync-status-provider";
 import { PromiseCreateForm } from "@/components/promise-create-form";
 import { buttonVariants } from "@/components/ui/button";
 import { BottomSheet } from "@/components/wafa/bottom-sheet";
@@ -35,6 +36,7 @@ export function PromiseDetailMoreActions({
   initialValues,
 }: PromiseDetailMoreActionsProps) {
   const router = useRouter();
+  const { isOnline } = useOfflineSync();
   const [pending, startTransition] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -56,7 +58,7 @@ export function PromiseDetailMoreActions({
   function deletePromise() {
     setError(null);
     startTransition(async () => {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (!isOnline) {
         setError("You're offline. Can't delete while offline.");
         return;
       }

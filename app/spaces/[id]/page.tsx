@@ -189,7 +189,7 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
         <SpaceDetailTabs promises={promises ?? []} nowIso={nowIso} />
       </div>
 
-      <Fab href={`/promises/new?spaceId=${space.id}`} aria-label="Create promise" />
+      <Fab href={`/promises/new?spaceId=${space.id}`} aria-label="Create promise"/>
       </div>
       <TabBar active="home" />
     </FullPage>

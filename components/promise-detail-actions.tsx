@@ -6,6 +6,7 @@ import { BottomSheet } from "@/components/wafa/bottom-sheet";
 import { cn } from "@/lib/utils";
 import { useOfflineSync } from "./offline/sync-status-provider";
 import { WafaToast } from "./wafa/wafa-toast";
+import { OfflineActionType } from "@/lib/offline/queue";
 
 type PromiseDetailActionsProps = {
   promiseId: string;
@@ -19,6 +20,11 @@ const snoozeOptions = [
   { id: "3d", label: "3 days" },
 ] as const;
 
+const QUEUEABLE_ACTION_MAP: Record<string, OfflineActionType> = {
+  fulfill: "fulfill_promise",
+  reopen: "reopen_promise",
+  unsnooze: "unsnooze_promise",
+};
 export function PromiseDetailActions({
   promiseId,
   state,
@@ -26,13 +32,15 @@ export function PromiseDetailActions({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { queueAction } = useOfflineSync();
+  const { queueAction, isOnline } = useOfflineSync();
   const [queued, setQueued] = useState(false);
+
   function runAction(action: string, extra?: Record<string, string>) {
     setError(null);
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      if (action === "fulfill") {
-        void queueAction("fulfill_promise", { promiseId, baseUpdatedAt: null });
+    if (!isOnline) {
+      const queueableType = QUEUEABLE_ACTION_MAP[action];
+      if (queueableType) {
+        void queueAction(queueableType, { promiseId, baseUpdatedAt: null });
         setQueued(true);
         return;
       }
@@ -99,7 +107,9 @@ export function PromiseDetailActions({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {queued ? (
-        <WafaToast>Saved offline — will sync when you&apos;re back online</WafaToast>
+        <WafaToast>
+          Saved offline — will sync when you&apos;re back online
+        </WafaToast>
       ) : null}
 
       <BottomSheet
