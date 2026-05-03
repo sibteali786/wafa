@@ -37,7 +37,7 @@ export function PromiseRowActions({ promiseId, mode, baseUpdatedAt }: PromiseRow
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="inline-flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
+          className="inline-flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-all duration-100 active:scale-90 active:opacity-60"
           aria-label="Approve suggestion"
           onClick={(event) => {
             stopRowNavigation(event);
@@ -48,7 +48,7 @@ export function PromiseRowActions({ promiseId, mode, baseUpdatedAt }: PromiseRow
         </button>
         <button
           type="button"
-          className="inline-flex size-7 items-center justify-center rounded-md border border-line-strong bg-card text-ink-secondary"
+          className="inline-flex size-7 items-center justify-center rounded-md border border-line-strong bg-card text-ink-secondary transition-all duration-100 active:scale-90 active:opacity-60"
           aria-label="Reject suggestion"
           onClick={(event) => {
             stopRowNavigation(event);
@@ -65,6 +65,7 @@ export function PromiseRowActions({ promiseId, mode, baseUpdatedAt }: PromiseRow
     <button
       type="button"
       aria-label="Mark fulfilled"
+      className="transition-all duration-100 active:scale-90 active:opacity-60"
       onClick={(event) => {
         stopRowNavigation(event);
         action("fulfill");

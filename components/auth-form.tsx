@@ -175,7 +175,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="text-muted-foreground hover:text-foreground absolute end-1 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md"
+                  className="text-muted-foreground hover:text-foreground absolute end-1 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md transition-all duration-100 active:scale-90 active:opacity-60"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
                 >

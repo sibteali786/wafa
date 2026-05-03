@@ -85,7 +85,10 @@ export function SpaceInvitePanel({ spaceId, inviteForLabel }: SpaceInvitePanelPr
           type="button"
           onClick={copyInvite}
           disabled={isPending}
-          className={cn(buttonVariants({ variant: "wireGhost", size: "sm" }), "flex-1 gap-1.5")}
+          className={cn(
+            buttonVariants({ variant: "wireGhost", size: "sm" }),
+            "flex-1 gap-1.5 transition-all duration-100 active:scale-90 active:opacity-60"
+          )}
         >
           <Copy className="size-3.5" />
           {copied ? "Copied" : "Copy"}
@@ -94,7 +97,10 @@ export function SpaceInvitePanel({ spaceId, inviteForLabel }: SpaceInvitePanelPr
           type="button"
           onClick={shareInvite}
           disabled={isPending}
-          className={cn(buttonVariants({ variant: "cta", size: "sm" }), "flex-1 gap-1.5")}
+          className={cn(
+            buttonVariants({ variant: "cta", size: "sm" }),
+            "flex-1 gap-1.5 transition-all duration-100 active:scale-90 active:opacity-60"
+          )}
         >
           <Share2 className="size-3.5" />
           Share

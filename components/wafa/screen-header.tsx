@@ -35,7 +35,9 @@ export function ScreenHeader({
           )}
           <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
         </div>
-        {right != null ? <div className="shrink-0">{right}</div> : null}
+        {right != null ? (
+          <div className="shrink-0 transition-all duration-100 active:scale-90 active:opacity-60">{right}</div>
+        ) : null}
       </header>
     );
   }
@@ -47,11 +49,13 @@ export function ScreenHeader({
         className
       )}
     >
-      <div className="w-7 shrink-0">{left}</div>
+      <div className="w-7 shrink-0 transition-all duration-100 active:scale-90 active:opacity-60">{left}</div>
       <div className="min-w-0 flex-1 px-1 text-center">
         <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
       </div>
-      <div className="flex w-7 shrink-0 justify-end">{right}</div>
+      <div className="flex w-7 shrink-0 justify-end transition-all duration-100 active:scale-90 active:opacity-60">
+        {right}
+      </div>
     </header>
   );
 }

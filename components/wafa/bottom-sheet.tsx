@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 type BottomSheetProps = {
@@ -20,6 +21,12 @@ export function BottomSheet({
   footer,
   className,
 }: BottomSheetProps) {
+  const portalRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    portalRef.current = document.body;
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -29,11 +36,11 @@ export function BottomSheet({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof window === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="fixed inset-0 z-[200] flex flex-col"
       role="dialog"
       aria-modal="true"
     >
@@ -45,7 +52,7 @@ export function BottomSheet({
       />
       <div
         className={cn(
-          "relative mt-auto flex max-h-[min(420px,70%)] w-full max-w-[480px] flex-col self-center rounded-t-[20px] bg-card px-[18px] pb-6 pt-5 shadow-lg",
+          "relative z-10 mt-auto flex max-h-[min(420px,70%)] w-full max-w-[480px] flex-col self-center rounded-t-[20px] bg-card px-[18px] pb-6 pt-5 shadow-lg",
           className
         )}
       >
@@ -54,6 +61,7 @@ export function BottomSheet({
         <div className="min-h-0 flex-1 overflow-y-auto text-sm text-ink-secondary">{children}</div>
         {footer != null ? <div className="mt-4 shrink-0">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

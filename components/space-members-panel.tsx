@@ -93,7 +93,7 @@ export function SpaceMembersPanel({
               onClick={() => openMemberActions(member)}
               disabled={!canManage}
               className={cn(
-                "flex w-full items-center justify-between rounded-lg border border-line-strong bg-background px-3 py-2 text-left",
+                "flex w-full items-center justify-between rounded-lg border border-line-strong bg-background px-3 py-2 text-left transition-all duration-100 active:scale-90 active:opacity-60",
                 canManage ? "hover:bg-muted/40" : "cursor-default"
               )}
             >
@@ -120,14 +120,20 @@ export function SpaceMembersPanel({
               type="button"
               onClick={removeMember}
               disabled={pending}
-              className={cn(buttonVariants({ variant: "destructive", size: "cta" }), "w-full")}
+              className={cn(
+                buttonVariants({ variant: "destructive", size: "cta" }),
+                "w-full transition-all duration-100 active:scale-[0.97] active:opacity-70"
+              )}
             >
               Remove from group
             </button>
             <button
               type="button"
               onClick={() => setSheetOpen(false)}
-              className={cn(buttonVariants({ variant: "wireGhost", size: "cta" }), "w-full")}
+              className={cn(
+                buttonVariants({ variant: "wireGhost", size: "cta" }),
+                "w-full transition-all duration-100 active:scale-[0.97] active:opacity-70"
+              )}
             >
               Cancel
             </button>

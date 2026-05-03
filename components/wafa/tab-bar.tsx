@@ -28,7 +28,7 @@ export function TabBar({ active }: TabBarProps) {
               key={id}
               href={href}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all duration-100 active:scale-90 active:opacity-60",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
