@@ -17,14 +17,21 @@ function computeNextRunAt(args: {
   from: Date;
 }) {
   const next = new Date(args.from);
-  next.setHours(args.hour, args.minute, 0, 0);
-  if (next <= args.from) {
-    next.setDate(next.getDate() + 1);
+
+  // hour/minute are stored in PKT (UTC+5), so convert to UTC before writing next_run_at.
+  const utcHour = args.hour - 5;
+  next.setUTCHours(((utcHour % 24) + 24) % 24, args.minute, 0, 0);
+  if (utcHour < 0) {
+    next.setUTCDate(next.getUTCDate() - 1);
   }
-  if (args.cadence === "weekly") next.setDate(next.getDate() + 6);
-  if (args.cadence === "biweekly") next.setDate(next.getDate() + 13);
-  if (args.cadence === "monthly") next.setMonth(next.getMonth() + 1);
-  if (args.cadence === "every_n_days") next.setDate(next.getDate() + (args.everyNDays ?? 1) - 1);
+
+  if (next <= args.from) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  if (args.cadence === "weekly") next.setUTCDate(next.getUTCDate() + 6);
+  if (args.cadence === "biweekly") next.setUTCDate(next.getUTCDate() + 13);
+  if (args.cadence === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
+  if (args.cadence === "every_n_days") next.setUTCDate(next.getUTCDate() + (args.everyNDays ?? 1) - 1);
   return next.toISOString();
 }
 

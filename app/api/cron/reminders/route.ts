@@ -10,17 +10,29 @@ function computeNextRunAt(args: {
   minute: number;
   everyNDays: number | null;
   base: Date;
-}) {
-  const next = new Date(args.base);
-
+}): string | null {
   if (args.cadence === "once") return null;
-  if (args.cadence === "daily") next.setDate(next.getDate() + 1);
-  if (args.cadence === "weekly") next.setDate(next.getDate() + 7);
-  if (args.cadence === "biweekly") next.setDate(next.getDate() + 14);
-  if (args.cadence === "monthly") next.setMonth(next.getMonth() + 1);
-  if (args.cadence === "every_n_days") next.setDate(next.getDate() + (args.everyNDays ?? 1));
 
-  next.setHours(args.hour, args.minute, 0, 0);
+  // Start from base date and advance by cadence
+  const next = new Date(args.base);
+  if (args.cadence === "daily") next.setUTCDate(next.getUTCDate() + 1);
+  if (args.cadence === "weekly") next.setUTCDate(next.getUTCDate() + 7);
+  if (args.cadence === "biweekly") next.setUTCDate(next.getUTCDate() + 14);
+  if (args.cadence === "monthly") next.setUTCMonth(next.getUTCMonth() + 1);
+  if (args.cadence === "every_n_days") next.setUTCDate(next.getUTCDate() + (args.everyNDays ?? 1));
+
+  // hour/minute are in PKT (UTC+5) — convert to UTC by subtracting 5 hours
+  const utcHour = args.hour - 5;
+
+  // Set the time in UTC accounting for PKT offset
+  // If utcHour goes negative, it means the time is on the previous UTC day
+  next.setUTCHours(((utcHour % 24) + 24) % 24, args.minute, 0, 0);
+
+  // If utcHour was negative, we need to go back a day
+  if (utcHour < 0) {
+    next.setUTCDate(next.getUTCDate() - 1);
+  }
+
   return next.toISOString();
 }
 
