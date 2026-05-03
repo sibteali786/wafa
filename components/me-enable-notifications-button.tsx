@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timed out")), ms)
+    ),
+  ]);
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -24,7 +33,7 @@ export function EnableNotificationsButton({ initialEnabled }: Props) {
         alert("Notifications blocked. Please allow them in your browser settings.");
         return;
       }
-      const reg = await navigator.serviceWorker.ready;
+      const reg = await withTimeout(navigator.serviceWorker.ready, 10_000);
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
         console.error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
@@ -51,6 +60,7 @@ export function EnableNotificationsButton({ initialEnabled }: Props) {
       setEnabled(true);
     } catch (err) {
       console.error("Push subscribe error", err);
+      alert("Could not enable notifications. Please try again.");
     } finally {
       setLoading(false);
     }
