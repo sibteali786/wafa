@@ -1,0 +1,41 @@
+# =============================================================================
+# Wafa reminders cron (GitHub Actions)
+# =============================================================================
+# What this workflow does:
+#   Periodically (every 5 minutes, the shortest interval GitHub Actions allows)
+#   sends an HTTP GET to your deployed app's reminders cron endpoint so
+#   scheduled reminders can run without relying on Vercel Cron alone.
+#
+# Required GitHub repository secrets:
+#   CRON_SECRET
+#     Same value as the Vercel (or host) environment variable that your app
+#     expects for cron authorization — must match what the API checks.
+#   APP_URL
+#     Base URL of the deployed app, e.g. https://your-app.vercel.app
+#     Do not include a trailing slash; the workflow appends /api/cron/reminders.
+#
+# Manual testing:
+#   In GitHub: Actions → "Reminders cron" → "Run workflow" (workflow_dispatch).
+#   Inspect the job log for the printed HTTP status (200 = OK, 401 = secret
+#   mismatch; other codes fail the job).
+# =============================================================================
+
+name: Reminders cron
+
+on:
+  schedule:
+    # Every 5 minutes (UTC). GitHub Actions minimum interval for schedules.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET /api/cron/reminders
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            ${{ secrets.APP_URL }}/api/cron/reminders)
+          echo "Status: $STATUS"
+          if [[ "$STATUS" != "200" && "$STATUS" != "401" ]]; then exit 1; fi
