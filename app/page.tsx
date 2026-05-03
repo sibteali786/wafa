@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -10,11 +11,12 @@ export default function Home() {
       />
 
       <section className="relative flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <img
+        <Image
           src="/brand/wafa-icon.png"
           alt="Wafa"
-          width={72}
-          height={72}
+          width={80}
+          height={80}
+          priority
           className="size-[80px] rounded-[20px] shadow-md"
         />
         <div className="mt-4 flex items-center gap-1.5" aria-hidden>
