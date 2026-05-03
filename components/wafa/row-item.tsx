@@ -12,7 +12,7 @@ export function RowItem({ leading, title, sub, trailing, className }: RowItemPro
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-[14px] border border-border bg-card px-3 py-3",
+        "flex cursor-pointer items-center gap-3 rounded-[14px] border border-border bg-card px-3 py-3 transition-colors duration-150 active:bg-muted/60",
         className
       )}
     >

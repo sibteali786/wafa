@@ -139,7 +139,11 @@ export default async function HomePage() {
                   oneToOneSpaces.map((space) => {
                     const stats = statsBySpace.get(space.id) ?? { open: 0, overdue: 0 };
                     return (
-                      <Link key={space.id} href={`/spaces/${space.id}`}>
+                      <Link
+                        key={space.id}
+                        href={`/spaces/${space.id}`}
+                        className="block transition-colors duration-150 active:opacity-70"
+                      >
                         <RowItem
                           leading={<WafaAvatar initials={space.name.slice(0, 2)} tone="coral" />}
                           title={space.name}
@@ -168,7 +172,11 @@ export default async function HomePage() {
                   groupSpaces.map((space) => {
                     const stats = statsBySpace.get(space.id) ?? { open: 0, overdue: 0 };
                     return (
-                      <Link key={space.id} href={`/spaces/${space.id}`}>
+                      <Link
+                        key={space.id}
+                        href={`/spaces/${space.id}`}
+                        className="block transition-colors duration-150 active:opacity-70"
+                      >
                         <RowItem
                           leading={<WafaAvatar initials={space.name.slice(0, 2)} tone="teal" />}
                           title={space.name}

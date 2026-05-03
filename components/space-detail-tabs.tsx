@@ -40,7 +40,11 @@ function PromiseRows({
   return (
     <>
       {items.map((promise) => (
-        <Link key={promise.id} href={`/promises/${promise.id}`}>
+        <Link
+          key={promise.id}
+          href={`/promises/${promise.id}`}
+          className="block transition-colors duration-150 active:opacity-70"
+        >
           <RowItem
             className={rowClassName}
             title={promise.title}

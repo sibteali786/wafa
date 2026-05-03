@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { OfflineSyncProvider } from "@/components/offline/sync-status-provider";
+import { NavigationProgress } from "@/components/wafa/navigation-progress";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,6 +48,7 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <NavigationProgress />
         <OfflineSyncProvider>{children}</OfflineSyncProvider>
       </body>
     </html>

@@ -152,7 +152,11 @@ export default async function SpaceDetailPage({ params, searchParams }: SpacePag
             <div className="text-[11px] font-medium text-warn-ink">Needs your approval · {suggestions.length}</div>
             <div className="space-y-2">
               {suggestions.map((suggestion) => (
-                <Link key={suggestion.id} href={`/promises/${suggestion.id}`}>
+                <Link
+                  key={suggestion.id}
+                  href={`/promises/${suggestion.id}`}
+                  className="block transition-colors duration-150 active:opacity-70"
+                >
                   <RowItem
                     className="border-warn-border bg-warn-bg"
                     title={suggestion.title}

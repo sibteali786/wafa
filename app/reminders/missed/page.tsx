@@ -45,7 +45,7 @@ export default async function MissedRemindersPage() {
               <Link
                 key={row.id}
                 href={`/promises/${row.id}`}
-                className="rounded-lg border border-line-strong bg-card p-3"
+                className="rounded-lg border border-line-strong bg-card p-3 transition-colors duration-150 active:opacity-70"
               >
                 <p className="text-sm font-medium text-foreground">{row.title}</p>
                 <p className="text-xs text-muted-foreground">
