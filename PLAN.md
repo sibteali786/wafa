@@ -31,11 +31,32 @@ These rules must be followed for every new page built in any phase. They are non
 
 **ScreenHeader:** sits naturally at the top of the page flow — not fixed, not inside any wrapper. Back button on flows without TabBar. Settings/more icon on detail pages.
 
-**FAB (floating action button):** `fixed bottom-[78px] right-4` (16px above the TabBar) on pages that need it (`/spaces/[id]`). Coral background, 52px circle, plus icon.
+**FAB (floating action button):** `fixed bottom-[88px] right-4` on pages that need it (`/spaces/[id]`). Keep FAB below tab bar layer (`z-50`) but above page content (`z-index: 45` currently used in component). Coral background, 52px circle, plus icon.
 
 ---
 
 ## Implementation Progress (latest)
+
+### Update — 2026-05-03 (latest)
+- **Reminders cron automation shipped:**
+  - Added `.github/workflows/reminders-cron.yml` with:
+    - `schedule: "*/5 * * * *"` (GitHub minimum cadence)
+    - `workflow_dispatch` for manual test runs
+    - single curl step to `GET /api/cron/reminders`
+    - `Authorization: Bearer ${{ secrets.CRON_SECRET }}`
+    - URL sourced from `${{ secrets.APP_URL }}`
+  - Workflow logs HTTP status and fails only when status is neither `200` nor `401`.
+- **iOS Safari PWA push reliability hardening:**
+  - Reworked `components/me-enable-notifications-button.tsx` to avoid hanging on `navigator.serviceWorker.ready`:
+    - resolves active registration with activation wait logic
+    - explicit activation timeout/error messaging
+  - Added custom worker lifecycle listeners in `worker/index.ts`:
+    - `install` handler calls `skipWaiting()`
+    - `activate` handler calls `clients.claim()`
+  - Goal: unblock `pushManager.subscribe()` when iOS gets stuck with non-activated SW.
+- **FAB spacing/layering pass:**
+  - Updated `components/wafa/fab.tsx` to fixed `bottom-[88px]` for consistent gap above tab bar.
+  - Layer set to `z-index: 45` to stay above page content but below `TabBar` (`z-50`).
 
 ### Completed in this chat (Phase 1)
 - Scaffolded app with latest Next.js (App Router), TypeScript, Tailwind

@@ -32,6 +32,9 @@ Implemented so far:
 - Attachments with Cloudflare R2 signed upload/download/delete APIs + promise detail grid
 - Promise detail "more" actions for eligible users (edit + delete with confirmation)
 - PKT-safe due date/time picker (date input + fixed time options, timezone-aware submit)
+- Reminders cron GitHub Action (`.github/workflows/reminders-cron.yml`) running every 5 minutes + manual trigger support
+- iOS Safari PWA push hardening: service worker activation guard in enable-notifications flow + install/activate lifecycle handlers in custom worker
+- FAB spacing tune-up above tab bar (`components/wafa/fab.tsx`) with fixed bottom offset and z-index adjustment
 
 In progress next:
 
@@ -68,6 +71,13 @@ Use this template for each new session update:
 - **Behavior impact:** Attachment and invite/member admin APIs are reachable with expected auth guards; R2 signed URL flow (upload/read/delete) works with current runtime credentials.
 - **Infra/data changes:** No new schema added in this slice; verified existing migration artifacts are present in target Supabase schema including `invite_links.intended_for_user_id`.
 - **Verification:** `npx supabase migration list`, `npx supabase db push`, schema presence checks via service-role client, endpoint auth-smoke checks, and R2 signed URL smoke script.
+
+### 2026-05-03
+
+- **What shipped:** Added scheduled GitHub Action for reminders ping (`*/5 * * * *` + `workflow_dispatch`), improved iOS PWA push subscription reliability (service worker activation wait/timeout path + worker `install`/`activate` listeners), and adjusted FAB spacing above the fixed tab bar.
+- **Behavior impact:** Reminders endpoint can be triggered from GitHub on a 5-minute cadence, iOS Safari users are less likely to get stuck during push enablement, and the create-promise FAB now has clearer separation from tab bar icons.
+- **Infra/data changes:** New workflow file `.github/workflows/reminders-cron.yml` uses repo secrets `APP_URL` and `CRON_SECRET`; no DB schema changes.
+- **Verification:** `npm run build` passed after UI/worker updates; edited files lint clean via IDE diagnostics.
 
 ## Tech stack
 
