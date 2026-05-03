@@ -155,10 +155,15 @@ export function InviteDialog({
             />
 
             {inviteUrl ? (
-              <div className="space-y-2">
-                <Label>Link</Label>
+              <div className="grid gap-2">
+                <Label htmlFor="invite-generated-url">Link</Label>
                 <div className="flex gap-2">
-                  <Input readOnly value={inviteUrl} className="font-mono text-xs" />
+                  <Input
+                    id="invite-generated-url"
+                    readOnly
+                    value={inviteUrl}
+                    className="font-mono text-xs"
+                  />
                   <Button
                     type="button"
                     variant="secondary"

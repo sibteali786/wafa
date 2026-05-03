@@ -1,43 +1,65 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { FullPage } from "@/components/wafa/full-page";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  type NewOneToOneWizardValues,
+  newOneToOneWizardSchema,
+} from "@/lib/schemas/space-wizard";
+import { cn } from "@/lib/utils";
 
 const tones = ["coral", "sand", "teal", "sky"] as const;
-type Tone = (typeof tones)[number];
 
 export default function NewOneToOneSpacePage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [tone, setTone] = useState<Tone>("coral");
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
-  function submit() {
-    setError(null);
+  const form = useForm<NewOneToOneWizardValues>({
+    resolver: zodResolver(newOneToOneWizardSchema),
+    defaultValues: { name: "", avatarTone: "coral" },
+  });
+
+  function onSubmit(values: NewOneToOneWizardValues) {
+    form.clearErrors("root");
     startTransition(async () => {
       const response = await fetch("/api/spaces", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           spaceType: "one_to_one",
-          name,
-          avatarTone: tone,
+          name: values.name,
+          avatarTone: values.avatarTone,
         }),
       });
       const payload = (await response.json()) as { id?: string; error?: string };
       if (!response.ok || !payload.id) {
-        setError(payload.error ?? "Could not create space.");
+        form.setError("root", {
+          message: payload.error ?? "Could not create space.",
+        });
         return;
       }
-      router.push(`/spaces/${payload.id}?first=1&tone=${tone}&inviteFor=${encodeURIComponent(name || "them")}`);
+      router.push(
+        `/spaces/${payload.id}?first=1&tone=${values.avatarTone}&inviteFor=${encodeURIComponent(values.name || "them")}`,
+      );
     });
   }
+
+  const rootError = form.formState.errors.root?.message;
 
   return (
     <FullPage>
@@ -45,77 +67,84 @@ export default function NewOneToOneSpacePage() {
         <header className="mb-4 flex items-center justify-between">
           <Link
             href="/spaces/new"
-            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-secondary hover:bg-muted/40"
+            className="text-ink-secondary hover:bg-muted/40 inline-flex size-8 items-center justify-center rounded-lg"
             aria-label="Back"
           >
             <ChevronLeft className="size-5 stroke-[1.8]" />
           </Link>
-          <h1 className="text-base font-semibold text-foreground">1:1 space</h1>
+          <h1 className="text-foreground text-base font-semibold">1:1 space</h1>
           <span className="size-8" />
         </header>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Name this space
-            </label>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Areeba"
-              maxLength={120}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name this space</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Areeba" maxLength={120} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Avatar color
+            <FormField
+              control={form.control}
+              name="avatarTone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Avatar color</FormLabel>
+                  <FormControl>
+                    <div className="grid grid-cols-4 gap-2" role="group" aria-label="Avatar color">
+                      {tones.map((swatch) => (
+                        <button
+                          key={swatch}
+                          type="button"
+                          onClick={() => field.onChange(swatch)}
+                          className={cn(
+                            "h-10 rounded-lg border",
+                            field.value === swatch ? "border-foreground" : "border-line-strong",
+                            swatch === "coral"
+                              ? "bg-coral-soft"
+                              : swatch === "sand"
+                                ? "bg-sand"
+                                : swatch === "teal"
+                                  ? "bg-primary-soft"
+                                  : "bg-sky",
+                          )}
+                          aria-label={`Use ${swatch} avatar color`}
+                        />
+                      ))}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <p className="text-muted-foreground rounded-lg border border-line-strong bg-card px-3 py-2 text-[12px] text-sm">
+              Only you see this name.
             </p>
-            <div className="grid grid-cols-4 gap-2">
-              {tones.map((swatch) => (
-                <button
-                  key={swatch}
-                  type="button"
-                  onClick={() => setTone(swatch)}
-                  className={`h-10 rounded-lg border ${
-                    tone === swatch ? "border-foreground" : "border-line-strong"
-                  } ${
-                    swatch === "coral"
-                      ? "bg-coral-soft"
-                      : swatch === "sand"
-                      ? "bg-sand"
-                      : swatch === "teal"
-                      ? "bg-primary-soft"
-                      : "bg-sky"
-                  }`}
-                  aria-label={`Use ${swatch} avatar color`}
-                />
-              ))}
-            </div>
-          </div>
 
-          <p className="rounded-lg border border-line-strong bg-card px-3 py-2 text-[12px] text-muted-foreground">
-            Only you see this name.
-          </p>
+            {rootError ? <p className="text-destructive text-sm">{rootError}</p> : null}
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isPending}
-          className={buttonVariants({
-            variant: "cta",
-            size: "cta",
-            className: "mt-auto w-full gap-2",
-          })}
-        >
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Create space & get invite link
-        </button>
+            <Button
+              type="submit"
+              variant="cta"
+              size="cta"
+              disabled={isPending}
+              className="mt-auto w-full gap-2"
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Create space & get invite link
+            </Button>
+          </form>
+        </Form>
       </div>
     </FullPage>
   );
 }
-

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type DateTimePickerProps = {
   value: string | null;
@@ -74,9 +75,10 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Due date</label>
+      <div className="grid gap-2">
+        <Label htmlFor="wafa-due-date">Due date</Label>
         <Input
+          id="wafa-due-date"
           type="date"
           value={dateValue}
           onChange={(event) => {
@@ -89,9 +91,10 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
           }}
         />
       </div>
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">Time (PKT)</label>
+      <div className="grid gap-2">
+        <Label htmlFor="wafa-due-time">Time (PKT)</Label>
         <select
+          id="wafa-due-time"
           value={timeValue}
           onChange={(event) => {
             const nextTime = event.target.value;

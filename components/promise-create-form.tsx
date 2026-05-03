@@ -1,11 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { useOfflineSync } from "@/components/offline/sync-status-provider";
-import { buttonVariants } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/wafa/date-time-picker";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  PROMISE_ASSIGNEE_UNASSIGNED,
+  type PromiseCreateFormValues,
+  promiseCreateFormSchema,
+} from "@/lib/schemas/promise-create";
 import { cn } from "@/lib/utils";
+
+const textareaClass = cn(
+  "flex min-h-24 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm shadow-none transition-colors outline-none",
+  "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+  "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+  "aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm",
+  "dark:bg-input/30",
+);
 
 type MemberOption = {
   id: string;
@@ -37,153 +68,235 @@ export function PromiseCreateForm({
   const router = useRouter();
   const { queueAction, isOnline } = useOfflineSync();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [title, setTitle] = useState(initialValues?.title ?? "");
-  const [description, setDescription] = useState(
-    initialValues?.description ?? "",
-  );
-  const [dueAt, setDueAt] = useState<string | null>(
-    initialValues?.dueAt ?? null,
-  );
-  const [assignedTo, setAssignedTo] = useState(initialValues?.assignedTo ?? "");
 
-  function submit() {
-    setError(null);
+  const form = useForm<PromiseCreateFormValues>({
+    resolver: zodResolver(promiseCreateFormSchema),
+    defaultValues: {
+      title: initialValues?.title ?? "",
+      description: initialValues?.description ?? "",
+      dueAt: initialValues?.dueAt ?? null,
+      assignedTo: initialValues?.assignedTo ?? "",
+    },
+  });
+
+  useEffect(() => {
+    form.reset({
+      title: initialValues?.title ?? "",
+      description: initialValues?.description ?? "",
+      dueAt: initialValues?.dueAt ?? null,
+      assignedTo: initialValues?.assignedTo ?? "",
+    });
+  }, [
+    form,
+    initialValues?.title,
+    initialValues?.description,
+    initialValues?.dueAt,
+    initialValues?.assignedTo,
+  ]);
+
+  async function onSubmit(values: PromiseCreateFormValues) {
+    form.clearErrors("root");
     setSuccess(null);
     setPending(true);
-    void (async () => {
-      try {
-        if (mode === "edit") {
-          if (!promiseId) {
-            setError("Missing promise id.");
-            return;
-          }
-          if (!isOnline) {
-            setError("You're offline. Edits can't be saved right now.");
-            return;
-          }
-          const response = await fetch(`/api/promises/${promiseId}`, {
-            method: "PATCH",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ title, description, dueAt, assignedTo: assignedTo || null }),
-          });
-          const payload = (await response.json()) as { error?: string };
-          if (!response.ok) {
-            setError(payload.error ?? "Could not update promise.");
-            return;
-          }
-          onSuccess?.();
-          router.refresh();
+    const { title, description, dueAt, assignedTo } = values;
+    const assignedPayload = assignedTo || null;
+
+    try {
+      if (mode === "edit") {
+        if (!promiseId) {
+          form.setError("root", { message: "Missing promise id." });
           return;
         }
-  
-        let response: Response;
-        try {
-          response = await fetch("/api/promises", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ spaceId, title, description, dueAt, assignedTo: assignedTo || null }),
+        if (!isOnline) {
+          form.setError("root", {
+            message: "You're offline. Edits can't be saved right now.",
           });
-        } catch {
-          await queueAction("create_promise", { spaceId, title, description, dueAt, assignedTo: assignedTo || null });
-          setSuccess("Saved offline. It will sync when you're back online.");
-          onSuccess?.();
-          window.location.href = `/spaces/${spaceId}?queued=1`;
           return;
         }
-  
-        const payload = (await response.json()) as { id?: string; isSuggestion?: boolean; error?: string };
-        if (!response.ok || !payload.id) {
-          setError(payload.error ?? "Could not create promise.");
+        const response = await fetch(`/api/promises/${promiseId}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            title,
+            description,
+            dueAt,
+            assignedTo: assignedPayload,
+          }),
+        });
+        const payload = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          form.setError("root", {
+            message: payload.error ?? "Could not update promise.",
+          });
           return;
         }
         onSuccess?.();
-        if (payload.isSuggestion) {
-          router.push(`/spaces/${spaceId}?suggested=1`);
-          router.refresh();
-          return;
-        }
-        router.push(`/promises/${payload.id}`);
         router.refresh();
-      } finally {
-        setPending(false);
+        return;
       }
-    })();
+
+      let response: Response;
+      try {
+        response = await fetch("/api/promises", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            spaceId,
+            title,
+            description,
+            dueAt,
+            assignedTo: assignedPayload,
+          }),
+        });
+      } catch {
+        await queueAction("create_promise", {
+          spaceId,
+          title,
+          description,
+          dueAt,
+          assignedTo: assignedPayload,
+        });
+        setSuccess("Saved offline. It will sync when you're back online.");
+        onSuccess?.();
+        window.location.href = `/spaces/${spaceId}?queued=1`;
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        id?: string;
+        isSuggestion?: boolean;
+        error?: string;
+      };
+      if (!response.ok || !payload.id) {
+        form.setError("root", {
+          message: payload.error ?? "Could not create promise.",
+        });
+        return;
+      }
+      onSuccess?.();
+      if (payload.isSuggestion) {
+        router.push(`/spaces/${spaceId}?suggested=1`);
+        router.refresh();
+        return;
+      }
+      router.push(`/promises/${payload.id}`);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   }
 
+  const rootError = form.formState.errors.root?.message;
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-          Title
-        </label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Call Areeba's parents"
-          className="h-10 w-full rounded-lg border border-line-strong bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Call Areeba's parents" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-          Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional details"
-          className="min-h-24 w-full rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <textarea
+                  placeholder="Optional details"
+                  className={textareaClass}
+                  rows={5}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="space-y-1.5">
-        <DateTimePicker value={dueAt} onChange={setDueAt} />
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-            Assigned to
-          </label>
-          <select
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            className="h-10 w-full rounded-lg border border-line-strong bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Unassigned</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        <FormField
+          control={form.control}
+          name="dueAt"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <DateTimePicker value={field.value} onChange={field.onChange} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <p className="text-xs text-muted-foreground">
-        Reminder is added after creation from the promise detail page.
-      </p>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {success ? <p className="text-sm text-primary">{success}</p> : null}
+        <FormField
+          control={form.control}
+          name="assignedTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Assigned to</FormLabel>
+              <Select
+                value={field.value ? field.value : PROMISE_ASSIGNEE_UNASSIGNED}
+                onValueChange={(v) =>
+                  field.onChange(v === PROMISE_ASSIGNEE_UNASSIGNED ? "" : v)
+                }
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Unassigned">
+                      {(value: string | null) => {
+                        if (
+                          value == null ||
+                          value === "" ||
+                          value === PROMISE_ASSIGNEE_UNASSIGNED
+                        ) {
+                          return "Unassigned";
+                        }
+                        return members.find((m) => m.id === value)?.label ?? value;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={PROMISE_ASSIGNEE_UNASSIGNED}>Unassigned</SelectItem>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={pending || title.trim().length === 0}
-        className={cn(
-          buttonVariants({ variant: "cta", size: "cta" }),
-          "w-full",
-        )}
-      >
-        {pending
-          ? mode === "edit"
-            ? "Saving…"
-            : "Creating…"
-          : mode === "edit"
-            ? "Save changes"
-            : "Create promise"}
-      </button>
-    </div>
+        <p className="text-muted-foreground text-sm">
+          Reminder is added after creation from the promise detail page.
+        </p>
+
+        {rootError ? <p className="text-destructive text-sm">{rootError}</p> : null}
+        {success ? <p className="text-primary text-sm">{success}</p> : null}
+
+        <Button type="submit" variant="cta" size="cta" disabled={pending} className="w-full">
+          {pending
+            ? mode === "edit"
+              ? "Saving…"
+              : "Creating…"
+            : mode === "edit"
+              ? "Save changes"
+              : "Create promise"}
+        </Button>
+      </form>
+    </Form>
   );
 }

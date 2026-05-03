@@ -1,32 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
-const labelClass =
-  "mb-2 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground";
-
-const fieldShellClass =
-  "rounded-[10px] border border-line-strong bg-card px-3.5 py-3";
-
-const inputBareClass =
-  "h-auto min-h-0 w-full border-0 bg-transparent p-0 text-[13px] text-foreground shadow-none focus-visible:ring-0 md:text-[13px]";
+import {
+  type MeDisplayNameValues,
+  meDisplayNameSchema,
+} from "@/lib/schemas/me-profile";
 
 /** Phase 1: local-only edit; persist via profile API in a later phase. */
 export function MeDisplayNameField({ initialName }: { initialName: string }) {
-  const [value, setValue] = useState(initialName);
+  const form = useForm<MeDisplayNameValues>({
+    resolver: zodResolver(meDisplayNameSchema),
+    defaultValues: { displayName: initialName },
+  });
+
+  useEffect(() => {
+    form.reset({ displayName: initialName });
+  }, [initialName, form]);
 
   return (
-    <div>
-      <p className={labelClass}>Display name</p>
-      <div className={fieldShellClass}>
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          autoComplete="name"
-          className={inputBareClass}
+    <Form {...form}>
+      <form onSubmit={(e) => e.preventDefault()}>
+        <FormField
+          control={form.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Display name</FormLabel>
+              <FormControl>
+                <Input autoComplete="name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-    </div>
+      </form>
+    </Form>
   );
 }

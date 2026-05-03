@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { cn, sanitizeRedirect } from "@/lib/utils";
+import { sanitizeRedirect } from "@/lib/utils";
 
 type AuthMode = "signup" | "login";
 
@@ -44,15 +45,6 @@ const loginSchema = z.object({
 
 type SignUpValues = z.infer<typeof signUpSchema>;
 type LoginValues = z.infer<typeof loginSchema>;
-
-const labelClass =
-  "text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground";
-
-const fieldShellClass =
-  "rounded-[10px] border border-line-strong bg-card px-3.5 py-3";
-
-const inputBareClass =
-  "h-auto min-h-0 border-0 bg-transparent p-0 text-[13px] shadow-none focus-visible:ring-0 md:text-[13px]";
 
 export function AuthForm({ mode, nextPath }: AuthFormProps) {
   const router = useRouter();
@@ -123,24 +115,21 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-2.5">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-4">
         {isSignup && (
           <FormField
             control={form.control}
             name="displayName"
             render={({ field }) => (
-              <FormItem className="space-y-2">
-                <FormLabel className={labelClass}>Display name</FormLabel>
-                <div className={fieldShellClass}>
-                  <FormControl>
-                    <Input
-                      placeholder="How you'll appear in spaces"
-                      autoComplete="name"
-                      className={inputBareClass}
-                      {...field}
-                    />
-                  </FormControl>
-                </div>
+              <FormItem>
+                <FormLabel>Display name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="How you'll appear in spaces"
+                    autoComplete="name"
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -150,20 +139,17 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
           control={form.control}
           name="email"
           render={({ field }) => (
-            <FormItem className={cn("space-y-2", isSignup && "mt-1.5")}>
-              <FormLabel className={labelClass}>Email</FormLabel>
-              <div className={fieldShellClass}>
-                <FormControl>
-                  <Input
-                    required
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    className={inputBareClass}
-                    {...field}
-                  />
-                </FormControl>
-              </div>
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  required
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -172,49 +158,47 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
           control={form.control}
           name="password"
           render={({ field }) => (
-            <FormItem className="mt-1.5 space-y-2">
-              <FormLabel className={labelClass}>Password</FormLabel>
-              <div className={cn(fieldShellClass, "flex flex-col gap-1")}>
-                <div className="flex min-h-0 items-center gap-2">
-                  <FormControl>
-                    <Input
-                      required
-                      minLength={8}
-                      type={showPassword ? "text" : "password"}
-                      autoComplete={isSignup ? "new-password" : "current-password"}
-                      placeholder="••••••••"
-                      className={cn(inputBareClass, "min-w-0 flex-1")}
-                      {...field}
-                    />
-                  </FormControl>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-muted/60"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="size-4 stroke-[1.8]" />
-                    ) : (
-                      <Eye className="size-4 stroke-[1.8]" />
-                    )}
-                  </button>
-                </div>
-                {isSignup && (
-                  <p className="text-[10px] text-muted-foreground">Min 8 characters</p>
-                )}
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <div className="relative">
+                <FormControl>
+                  <Input
+                    required
+                    minLength={8}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={isSignup ? "new-password" : "current-password"}
+                    placeholder="••••••••"
+                    className="pe-10"
+                    {...field}
+                  />
+                </FormControl>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-muted-foreground hover:text-foreground absolute end-1 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4 stroke-[1.8]" />
+                  ) : (
+                    <Eye className="size-4 stroke-[1.8]" />
+                  )}
+                </button>
               </div>
+              {isSignup ? (
+                <FormDescription>Min 8 characters</FormDescription>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}
         />
 
         {!isSignup && (
-          <div className="text-right">
+          <div className="-mt-1 text-right">
             <Link
               href="#"
-              className="text-xs text-primary underline"
+              className="text-primary text-xs underline"
               onClick={(e) => e.preventDefault()}
             >
               Forgot password?
@@ -227,7 +211,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
             control={form.control}
             name="termsAccepted"
             render={({ field }) => (
-              <FormItem className="mt-1 flex flex-row items-start gap-2 space-y-0">
+              <FormItem className="flex flex-row items-start gap-3 space-y-0">
                 <FormControl>
                   <input
                     type="checkbox"
@@ -236,13 +220,17 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}
-                    className="mt-0.5 size-3.5 shrink-0 rounded-sm border border-ink-secondary"
+                    className="border-input mt-1 size-4 shrink-0 rounded-sm border focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </FormControl>
-                <div className="space-y-1 leading-snug text-[11px] font-normal text-muted-foreground">
+                <div className="space-y-1 leading-snug">
+                  <FormLabel className="text-muted-foreground text-[11px] leading-snug font-normal">
                     I agree to Wafa&apos;s terms. My timezone will default to{" "}
-                    <span className="font-mono text-[11px] text-ink-secondary">Asia/Karachi (PKT)</span>{" "}
+                    <span className="text-foreground font-mono text-[11px]">
+                      Asia/Karachi (PKT)
+                    </span>{" "}
                     — can&apos;t change this in v1.
+                  </FormLabel>
                   <FormMessage />
                 </div>
               </FormItem>
@@ -251,26 +239,26 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
         )}
 
         {error != null && (
-          <WafaToast variant="coral" className="mt-1">
+          <WafaToast variant="coral" className="-mt-1">
             {error}
           </WafaToast>
         )}
 
-        <Button type="submit" variant="cta" size="cta" disabled={pending} className="mt-1 w-full">
+        <Button type="submit" variant="cta" size="cta" disabled={pending} className="w-full">
           {pending ? "Please wait…" : isSignup ? "Create account" : "Log in"}
         </Button>
 
         <div className="h-px bg-border" />
 
         {isSignup ? (
-          <p className="text-center text-[12px] text-muted-foreground">
+          <p className="text-muted-foreground text-center text-[12px]">
             Already have an account?{" "}
             <Link href="/login" className="text-primary underline">
               Log in
             </Link>
           </p>
         ) : (
-          <p className="text-center text-[12px] text-muted-foreground">
+          <p className="text-muted-foreground text-center text-[12px]">
             New here?{" "}
             <Link href="/signup" className="text-primary underline">
               Create account
