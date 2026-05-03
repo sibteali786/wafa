@@ -1,9 +1,10 @@
+import { AppViewport } from "@/components/wafa/app-viewport";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SpaceDetailLoading() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-[480px] px-4 py-4">
+    <AppViewport showTabBar={true} activeTab="home">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-4">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Skeleton className="size-8 rounded-lg" />
@@ -29,6 +30,6 @@ export default function SpaceDetailLoading() {
           </div>
         </div>
       </div>
-    </div>
+    </AppViewport>
   );
 }

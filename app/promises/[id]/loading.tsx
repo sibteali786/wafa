@@ -1,15 +1,17 @@
+import { FullPage } from "@/components/wafa/full-page";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PromiseDetailLoading() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-[480px] px-4 py-4">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-8 rounded-lg" />
-            <Skeleton className="h-5 w-28 rounded-md" />
-          </div>
+    <FullPage>
+      <div className="flex min-h-screen flex-col">
+        <div className="flex items-center justify-between py-4">
+          <Skeleton className="size-7 rounded-md" />
+          <Skeleton className="h-5 w-24 rounded-md" />
+          <Skeleton className="size-7 rounded-md" />
+        </div>
 
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-6 pt-4">
           <Skeleton className="h-8 w-3/5 rounded-md" />
 
           <div className="space-y-2 rounded-lg border border-line-strong bg-card p-3">
@@ -34,6 +36,6 @@ export default function PromiseDetailLoading() {
           </div>
         </div>
       </div>
-    </div>
+    </FullPage>
   );
 }
