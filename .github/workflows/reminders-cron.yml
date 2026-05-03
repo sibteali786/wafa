@@ -34,8 +34,15 @@ jobs:
     steps:
       - name: GET /api/cron/reminders
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          if [[ -z "${{ secrets.APP_URL }}" ]]; then
+            echo "APP_URL secret is missing or empty"
+            exit 1
+          fi
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             ${{ secrets.APP_URL }}/api/cron/reminders)
+          BODY=$(echo "$RESPONSE" | sed -e 's/HTTP_STATUS:[0-9]*$//')
+          STATUS=$(echo "$RESPONSE" | tr -d '\n' | sed -e 's/.*HTTP_STATUS://')
           echo "Status: $STATUS"
+          echo "Response: $BODY"
           if [[ "$STATUS" != "200" && "$STATUS" != "401" ]]; then exit 1; fi
