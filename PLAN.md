@@ -851,3 +851,8 @@ If a user opens an invite link while not authenticated:
 - Reaction / acknowledgement on fulfilled promises
 - Promise history / activity log per space
 - Multi-timezone support: per-user timezone with full migration of existing reminders on change
+- iOS PWA splash screen: use `pwa-asset-generator` CLI to generate all required PNG sizes 
+  from `public/brand/wafa-icon.svg` with `background: "#fbf8f3"` and `padding: "30%"`. 
+  Commit generated PNGs to `public/splash/`. Paste the output `<link>` tags into 
+  `app/layout.tsx`. Re-run whenever the icon changes. Reference: 
+  https://github.com/elegantapp/pwa-asset-generator
