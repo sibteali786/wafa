@@ -8,6 +8,8 @@ import { RowItem } from "@/components/wafa/row-item";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const revalidate = 30;
+
 function signedInCrumb(email: string) {
   const local = email.split("@")[0] ?? email;
   return `Signed in as ${local}@…`;

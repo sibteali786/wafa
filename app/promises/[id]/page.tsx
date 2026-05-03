@@ -10,6 +10,8 @@ import { FullPage } from "@/components/wafa/full-page";
 import { ScreenHeader } from "@/components/wafa/screen-header";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const revalidate = 30;
+
 type PromiseDetailPageProps = {
   params: Promise<{ id: string }>;
 };

@@ -14,6 +14,8 @@ import { WafaAvatar } from "@/components/wafa/wafa-avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const revalidate = 30;
+
 type SpacePageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ first?: string; tone?: string; inviteFor?: string; suggested?: string }>;
