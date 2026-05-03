@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPush } from "@/lib/webpush";
 
 type ReminderCadence = "once" | "daily" | "weekly" | "biweekly" | "monthly" | "every_n_days";
 
@@ -23,14 +24,12 @@ function computeNextRunAt(args: {
   return next.toISOString();
 }
 
-/**
- * Phase 3 skeleton only:
- * - fetch due reminder rows
- * - iterate algorithm
- * - advance next_run_at / deactivate once cadence
- * No Vercel cron config or Web Push dispatch is wired here yet.
- */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const cronSecret = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (cronSecret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const admin = createAdminClient();
   const nowIso = new Date().toISOString();
 
@@ -50,7 +49,6 @@ export async function GET() {
   let deactivated = 0;
 
   for (const reminder of dueReminders ?? []) {
-    // In Phase 4 this is where push dispatch + missed-reminder recording will be wired.
     const nextRunAt = computeNextRunAt({
       cadence: reminder.cadence as ReminderCadence,
       hour: reminder.hour,
@@ -58,6 +56,46 @@ export async function GET() {
       everyNDays: reminder.every_n_days,
       base: new Date(),
     });
+
+    const { data: promise } = await admin
+      .from("promises")
+      .select("id, title, space_id, spaces(name, space_type)")
+      .eq("id", reminder.promise_id)
+      .maybeSingle();
+
+    if (promise) {
+      const { data: members } = await admin.from("space_members").select("user_id").eq("space_id", promise.space_id);
+
+      const userIds = (members ?? []).map((m) => m.user_id);
+
+      const { data: subs } =
+        userIds.length > 0
+          ? await admin
+              .from("push_subscriptions")
+              .select("id, endpoint, p256dh, auth")
+              .in("user_id", userIds)
+          : { data: [] as { id: string; endpoint: string; p256dh: string; auth: string }[] };
+
+      const rawSpace = promise.spaces;
+      const space = (
+        Array.isArray(rawSpace) ? rawSpace[0] : rawSpace
+      ) as { name: string | null; space_type: string } | null | undefined;
+      const spaceLabel = space?.name ?? (space?.space_type === "one_to_one" ? "Your space" : "Group");
+      const notifPayload = {
+        title: `Reminder: ${promise.title}`,
+        body: spaceLabel,
+        url: `/promises/${promise.id}`,
+      };
+
+      const expiredIds: string[] = [];
+      for (const sub of subs ?? []) {
+        const result = await sendPush(sub, notifPayload);
+        if (result === "expired") expiredIds.push(sub.id);
+      }
+      if (expiredIds.length > 0) {
+        await admin.from("push_subscriptions").delete().in("id", expiredIds);
+      }
+    }
 
     if (nextRunAt === null) {
       await admin
@@ -87,4 +125,3 @@ export async function GET() {
     scanned: dueReminders?.length ?? 0,
   });
 }
-

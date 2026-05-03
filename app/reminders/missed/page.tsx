@@ -49,7 +49,12 @@ export default async function MissedRemindersPage() {
               >
                 <p className="text-sm font-medium text-foreground">{row.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {(Array.isArray(row.spaces) ? row.spaces[0]?.name : row.spaces?.name) || "Space"} · due{" "}
+                  {(Array.isArray(row.spaces)
+                    ? (row.spaces[0] as { name: string | null } | undefined)?.name
+                    : row.spaces
+                      ? (row.spaces as { name: string | null }).name
+                      : null) || "Space"}{" "}
+                  · due{" "}
                   {row.due_at ? new Date(row.due_at).toLocaleString() : "—"}
                 </p>
               </Link>

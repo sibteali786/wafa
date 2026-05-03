@@ -23,7 +23,7 @@ export default async function InviteTokenPage({
 
   const linkedSpace =
     invite && invite.spaces && !Array.isArray(invite.spaces)
-      ? (invite.spaces.name as string | null)
+      ? ((invite.spaces as { name: string | null }).name ?? null)
       : null;
   const canUse = invite?.status === "pending";
 

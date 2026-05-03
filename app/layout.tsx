@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { OfflineSyncProvider } from "@/components/offline/sync-status-provider";
 import "./globals.css";
@@ -17,6 +17,23 @@ export const metadata: Metadata = {
   title: "Wafa",
   description: "Promise spaces for the people who matter most.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/brand/wafa-favicon-32.svg", type: "image/svg+xml" },
+      { url: "/brand/wafa-favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/wafa-favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/wafa-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Wafa",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2f7a6b",
 };
 
 export default function RootLayout({
