@@ -29,12 +29,13 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Wafa",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
 };
 
 export const viewport: Viewport = {
   themeColor: "#2f7a6b",
+  colorScheme: "light",
 };
 
 export default function RootLayout({

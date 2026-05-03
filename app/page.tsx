@@ -11,11 +11,11 @@ export default function Home() {
 
       <section className="relative flex flex-1 flex-col items-center justify-center px-6 text-center">
         <img
-          src="/brand/wafa-icon.svg"
+          src="/brand/wafa-icon.png"
           alt="Wafa"
           width={72}
           height={72}
-          className="size-[72px] drop-shadow-[0_8px_18px_rgba(0,0,0,0.12)]"
+          className="size-[80px] rounded-[20px] shadow-md"
         />
         <div className="mt-4 flex items-center gap-1.5" aria-hidden>
           <span className="size-1.5 rounded-full bg-primary-soft" />
