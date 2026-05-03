@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -58,6 +59,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
   const supabase = useMemo(() => createClient(), []);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const isSignup = mode === "signup";
 
   const form = useForm<SignUpValues | LoginValues>({
@@ -172,20 +174,35 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
           render={({ field }) => (
             <FormItem className="mt-1.5 space-y-2">
               <FormLabel className={labelClass}>Password</FormLabel>
-              <div className={fieldShellClass}>
-                <FormControl>
-                  <Input
-                    required
-                    minLength={8}
-                    type="password"
-                    autoComplete={isSignup ? "new-password" : "current-password"}
-                    placeholder="••••••••"
-                    className={inputBareClass}
-                    {...field}
-                  />
-                </FormControl>
+              <div className={cn(fieldShellClass, "flex flex-col gap-1")}>
+                <div className="flex min-h-0 items-center gap-2">
+                  <FormControl>
+                    <Input
+                      required
+                      minLength={8}
+                      type={showPassword ? "text" : "password"}
+                      autoComplete={isSignup ? "new-password" : "current-password"}
+                      placeholder="••••••••"
+                      className={cn(inputBareClass, "min-w-0 flex-1")}
+                      {...field}
+                    />
+                  </FormControl>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-ink-secondary hover:bg-muted/60"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-4 stroke-[1.8]" />
+                    ) : (
+                      <Eye className="size-4 stroke-[1.8]" />
+                    )}
+                  </button>
+                </div>
                 {isSignup && (
-                  <p className="mt-1 text-[10px] text-muted-foreground">Min 8 characters</p>
+                  <p className="text-[10px] text-muted-foreground">Min 8 characters</p>
                 )}
               </div>
               <FormMessage />
