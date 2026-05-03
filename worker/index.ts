@@ -31,6 +31,21 @@ interface ClientLike {
 
 const sw = self as unknown as ServiceWorkerSelf;
 
+type ExtendableEvent = Event & { waitUntil: (p: Promise<unknown>) => void };
+
+sw.addEventListener("install", (event: Event) => {
+  const ev = event as ExtendableEvent;
+  ev.waitUntil(Promise.resolve());
+  (self as unknown as { skipWaiting(): void }).skipWaiting();
+});
+
+sw.addEventListener("activate", (event: Event) => {
+  const ev = event as ExtendableEvent;
+  ev.waitUntil(
+    (self as unknown as { clients: { claim(): Promise<void> } }).clients.claim()
+  );
+});
+
 sw.addEventListener("push", (event: Event) => {
   const ev = event as unknown as PushEventLike;
   if (!ev.data) return;
