@@ -856,3 +856,5 @@ If a user opens an invite link while not authenticated:
   Commit generated PNGs to `public/splash/`. Paste the output `<link>` tags into 
   `app/layout.tsx`. Re-run whenever the icon changes. Reference: 
   https://github.com/elegantapp/pwa-asset-generator
+
+- Send Notifications to all members of a space when a promise is created, edited, deleted, marked as fulfilled, or snoozed or notes are added or attachments are uploaded.
